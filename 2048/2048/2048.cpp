@@ -109,7 +109,7 @@ void setup(board& current) {
             }
         }
     }
-    current =  board(seed, initCells[0], initCells[1], initCells[2], initCells[3]);//test
+    current =  board(seed, initCells[0], initCells[1], initCells[2], initCells[3]);
 }
 int main() {//passed seed probably needs to be advanced twice in setup
     board current;
