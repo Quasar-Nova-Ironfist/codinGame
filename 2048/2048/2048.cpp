@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <cstdint>
 #include <chrono>
 #include <iomanip>
 
@@ -13,7 +14,7 @@ struct board {
     8  9  10 11
     12 13 14 15
     */
-    long seed;
+    std::int64_t seed;
     int nums[16]{};
     void spawnTile() {
         vector<int> freeCells;

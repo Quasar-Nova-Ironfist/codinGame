@@ -8,23 +8,28 @@
 using std::endl; using std::cout; using std::cerr; using std::string; using std::vector; using std::cin; using std::list;
 
 int main(){
-	std::ifstream wordFile("C:\\Users\\Quasar\\source\\repos\\codinGame\\wordleSimulator\\wordList.txt");
+	std::ifstream wordFile("C:\\Users\\Quasar\\source\\repos\\codinGame\\wordleSimulator\\wordListEntirety.txt");
 	vector<string> wordList;
 	string line;
-	//while (wordFile >> line)
-	for (int i = 0; i < 500; ++i, wordFile >> line)
-		wordList.push_back(line);
-	
-	for (int i = 0; i < wordList.size(); ++i) {
-		string secret = wordList[i];
-
-
-
-
-
-
+	std::ofstream outFile("C:\\Users\\Quasar\\source\\repos\\codinGame\\wordleSimulator\\wordList.txt", std::fstream::trunc);
+	while (wordFile >> line) {
+		if(line[0] != 'Z')
+			outFile << line << '\n';
 	}
-	cout << wordList.size() << endl;
+	outFile.close();
+		//for (int i = 0; i < 500; ++i, wordFile >> line)
+		//wordList.push_back(line);
+	
+	//for (int i = 0; i < wordList.size(); ++i) {
+		//string secret = wordList[i];
+
+
+
+
+
+
+	//}
+	//cout << wordList.size() << endl;
 
 	/*
 	srand(time(0));
