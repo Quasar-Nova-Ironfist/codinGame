@@ -27,6 +27,7 @@ struct malice {
     board cur;
     move mov;
     bool go() {
+        cerr << transTable.size() << ' ' << cur.size() << endl;
         vector<malice> potentia;
         for (pair<const pair<int, int>, int>& curPair : cur) {
             for (int times = -1; times < 2; times += 2) {
