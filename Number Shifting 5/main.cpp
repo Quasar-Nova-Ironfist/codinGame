@@ -13,10 +13,12 @@ const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 std::set<std::vector<std::vector<int>>> transTable;
 std::atomic_bool stopSearch;
 std::mutex transTableMutex;
+int resultOffsetX, resultOffsetY;
 
 int main(){
     while (true) {
         stopSearch = false;
+        resultOffsetX = 0; resultOffsetY = 0;
         int width, height;
         std::cin >> width >> height; std::cin.ignore();
         solveState pwomp;
@@ -32,7 +34,52 @@ int main(){
             }
         }
         pwomp.non0s.shrink_to_fit();
-
+        {
+            for (size_t x = pwomp.cur.size(); x--;) {
+                for (size_t y = pwomp.cur[0].size(); y--;) {
+                    if (pwomp.cur[x][y])
+                        goto pastRightShave;
+                }
+                pwomp.cur.pop_back();
+            }
+        pastRightShave:
+            for (size_t y = pwomp.cur[0].size(); y--;) {
+                for (size_t x = pwomp.cur.size(); x--;) {
+                    if (pwomp.cur[x][y])
+                        goto pastBottomShave;
+                }
+                for (size_t x = pwomp.cur.size(); x--;)
+                    pwomp.cur[x].pop_back();
+            }
+        pastBottomShave:
+            for (size_t y = 0; y < pwomp.cur[0].size(); ++y) {
+                if (pwomp.cur[0][y])
+                    goto pastLeftShave;
+            }
+            pwomp.cur.erase(pwomp.cur.begin());
+            ++resultOffsetX;
+            goto pastBottomShave;
+        pastLeftShave:
+            for (int x = 0; x < pwomp.cur.size(); ++x) {
+                if (pwomp.cur[x][0])
+                    goto pastShaves;
+            }
+            for (int x = 0; x < pwomp.cur.size(); ++x)
+                pwomp.cur[x].erase(pwomp.cur[x].begin());
+            ++resultOffsetY;
+            goto pastBottomShave;
+        pastShaves:
+            pwomp.cur.shrink_to_fit();
+            for (int x = 0; x < pwomp.cur.size(); ++x)
+                pwomp.cur[x].shrink_to_fit();
+            cout << "\nx, y offset : " << resultOffsetX << ", " << resultOffsetY << '\n';
+            for (size_t y = 0; y < pwomp.cur[0].size(); ++y) {
+                for (size_t x = 0; x < pwomp.cur.size(); ++x) {
+                    cout << pwomp.cur[x][y] << ' ';
+                }
+                cout << endl;
+            }
+        }
         auto solveThreadLambda = [&] {
             solveState a;
             a.cur = pwomp.cur;
@@ -99,7 +146,7 @@ bool solveState::solve() {
                     std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting/output.txt", std::fstream::app);
                     outFile << "cout << \"";
                     for (int i = 0; i < moves.size(); ++i) {
-                        outFile << moves[i][0] << ' ' << moves[i][1] << ' ' <<
+                        outFile << moves[i][0] + resultOffsetX << ' ' << moves[i][1] + resultOffsetY << ' ' <<
                             (moves[i][2] ? (moves[i][2] == 1 ? 'R' : (moves[i][2] == 2 ? 'D' : 'L')) : 'U') << ' ' <<
                             (moves[i][3] > 0 ? '+' : '-') << "\\n";
                     }
