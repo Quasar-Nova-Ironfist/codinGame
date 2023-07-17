@@ -138,7 +138,7 @@ pastUpDown:
 }
 bool outputToFileAndReturnTrue(std::vector<std::array<int, 4>>& moves) {
     stopSearch = true;
-    std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting/output.txt", std::fstream::app);
+    std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt", std::fstream::app);
     outFile << "cout << \"";
     for (int i = 0; i < moves.size(); ++i) {
         outFile << moves[i][0] + resultOffsetX << ' ' << moves[i][1] + resultOffsetY << ' ' <<
@@ -148,6 +148,6 @@ bool outputToFileAndReturnTrue(std::vector<std::array<int, 4>>& moves) {
     outFile << "\";" << endl;
     outFile.close();
     system("taskkill /f /fi \"windowtitle eq output.txt*\"");
-    system("start notepad \"C:/Users/Quasar/source/repos/codinGame/Number Shifting/output.txt\"");
+    system("start notepad \"C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt\"");
     return true;
 }
