@@ -2,18 +2,39 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <set>
+#include <atomic>
+#include <mutex>
 
 using std::cout; using std::endl; using std::vector; using std::move; using std::ref;
 const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 
-std::set<std::vector<std::vector<int>>> transTable;//replace with set<vector<pair<pair<int,int>,int>>>?
+//std::set<std::vector<std::vector<int>>> transTable;//replace with set<vector<pair<pair<int,int>,int>>>?
+std::set<std::vector<int>> transTable;
 std::atomic_bool stopSearch;
 std::mutex transTableMutex;
 int resultOffsetX, resultOffsetY;
 
-bool tryInsert(std::vector<std::vector<int>>& cur){
+bool tryInsert(vector<vector<int>>& cur, size_t non0s){
+    //transTableMutex.lock();
+    //bool contDownBranch = transTable.insert(cur).second;
+    //transTableMutex.unlock();
+    //return contDownBranch;
+    vector<int> key;
+    key.reserve(non0s * 2);
+    int space = 0;
+    for (int y = 0; y < cur[0].size(); ++y) {
+        for (int x = 0; x < cur.size(); ++x) {
+            if (cur[x][y]) {
+                key.push_back(space);
+                key.push_back(cur[x][y]);
+                space = 0;
+            }
+            ++space;
+        }
+    }
     transTableMutex.lock();
-    bool contDownBranch = transTable.insert(cur).second;
+    bool contDownBranch = transTable.insert(key).second;
     transTableMutex.unlock();
     return contDownBranch;
 }
@@ -186,7 +207,7 @@ bool solveState::solve() {
                 cur[toX][toY] = abs(beforeTo + beforeFrom * times);
                 if ((!cur[toX][toY] && (non0s.size() == 2 || 
                                         checkIfRemovingCardinallyIsolates(cur, toX, toY))) || 
-                    !tryInsert(cur))
+                    !tryInsert(cur, non0s.size()))
                     continue;
                 if (!cur[toX][toY]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
