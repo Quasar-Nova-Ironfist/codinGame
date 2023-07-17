@@ -54,6 +54,7 @@ int main(){
         solveThread0.join();
         solveThread1.join();
         solveThread2.join();
+        cout << "transTable.size(): " << transTable.size() << endl;
         transTable.clear();
     }
 }
