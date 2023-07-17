@@ -1,8 +1,5 @@
 #pragma once
 #include <vector>
-#include <set>
-#include <atomic>
-#include <mutex>
 #include <array>
 struct solveState {
 	std::vector<std::vector<int>> cur;
@@ -13,4 +10,4 @@ struct solveState {
 bool checkIfRemovingCardinallyIsolates(std::vector<std::vector<int>>& cur, int x, int y);
 void trimGrid(std::vector<std::vector<int>>& cur);
 bool outputToFileAndReturnTrue(std::vector<std::array<int, 4>>& moves);
-bool tryInsert(std::vector<std::vector<int>>& cur);
+bool tryInsert(std::vector<std::vector<int>>& cur, size_t non0s);
