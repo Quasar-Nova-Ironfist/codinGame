@@ -6,7 +6,7 @@
 
 using std::cout; using std::endl; using std::vector; using std::move; using std::ref;
 
-std::set<std::vector<std::vector<int>>> transTable;
+std::set<std::vector<std::vector<int>>> transTable;//replace with set<vector<pair<pair<int,int>,int>>>?
 std::atomic_bool stopSearch;
 std::mutex transTableMutex;
 int resultOffsetX, resultOffsetY;
