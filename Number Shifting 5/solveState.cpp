@@ -1,6 +1,8 @@
 #include "solveState.h"
 #include "main.h"
 
+#include <iostream>
+
 using std::vector; using std::move;
 const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 
@@ -8,7 +10,7 @@ bool solveState::solve() {
     for (int non0sFromIndex = 0; non0sFromIndex < non0s.size(); ++non0sFromIndex) {
         if (stopSearch)
             return true;
-        if (checkIfRemovingCardinallyIsolates(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second))
+        if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second))
             continue;
         int fromX = non0s[non0sFromIndex].first;
         int fromY = non0s[non0sFromIndex].second;

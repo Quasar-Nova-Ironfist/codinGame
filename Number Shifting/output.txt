@@ -22,4 +22,5 @@ cout << "0 4 R -\n1 0 D -\n1 2 R -\n1 4 R -\n4 4 L -\n2 4 R -\n5 0 D -\n5 3 L +\
 cout << "0 0 D -\n0 2 U -\n0 4 R -\n2 0 D -\n3 0 D -\n3 4 R -\n4 4 L -\n2 4 R -\n5 0 D +\n5 1 L +\n3 1 L -\n0 1 R -\n6 2 R -\n";
 cout << "0 1 R -\n0 2 R -\n1 0 R -\n2 0 D -\n2 2 R -\n3 2 R -\n4 1 L -\n1 1 R +\n4 2 R -\n5 3 L -\n2 3 U -\n2 1 R -\n3 1 R -\n6 2 U +\n6 1 D -\n";
 cout << "0 2 R -\n1 1 R -\n1 4 U -\n1 3 R -\n2 2 U -\n2 4 U -\n2 1 R -\n3 0 D -\n3 1 R +\n4 1 R -\n6 1 L +\n5 1 R -\n7 1 D -\n";cout << "3 0 D -\n3 4 R -\n";
-
+cout << "1 0 D -\n7 4 L -\n6 4 L -\n2 4 U -\n2 3 R -\n0 3 D +\n2 1 R -\n6 1 L -\n3 1 R -\n0 4 U +\n4 2 U -\n1 3 U +\n1 1 R -\n0 1 R -\n4 1 R -\n";
+cout << "0 0 R -\n1 0 R -\n6 4 L -\n3 0 D -\n1 4 R -\n0 4 R -\n4 3 R -\n3 4 U -\n2 3 L -\n2 2 R -\n6 3 L -\n7 4 U -\n3 2 L -\n1 3 L -\n3 3 L -\n";

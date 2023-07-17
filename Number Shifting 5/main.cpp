@@ -31,6 +31,8 @@ int main(){
         }
         pwomp.non0s.shrink_to_fit();
         trimGrid(pwomp.cur);
+        for (int i = 0; i < pwomp.non0s.size(); ++i)
+            pwomp.non0s[i] = {pwomp.non0s[i].first - resultOffsetX, pwomp.non0s[i].second - resultOffsetY};
         cout << "\nx, y offset : " << resultOffsetX << ", " << resultOffsetY << '\n';
         for (size_t y = 0; y < pwomp.cur[0].size(); ++y) {
             for (size_t x = 0; x < pwomp.cur.size(); ++x) {
