@@ -9,27 +9,29 @@
 using std::cout; using std::endl; using std::vector; using std::move; using std::ref;
 const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 
-std::set<std::vector<int>> transTable;
+std::set<uint64_t> transTable;
 std::atomic_bool stopSearch;
 std::mutex transTableMutex;
 int resultOffsetX, resultOffsetY;
 
-bool tryInsert(vector<vector<int>>& cur, size_t non0s){
-    vector<int> key;
-    key.reserve(non0s * 2);
+bool tryInsert(vector<vector<int>>& cur) {
+    uint64_t state = 0xcbf29ce484222325;
     int space = 0;
     for (int y = 0; y < cur[0].size(); ++y) {
         for (int x = 0; x < cur.size(); ++x) {
             if (cur[x][y]) {
-                key.push_back(space);
-                key.push_back(cur[x][y]);
+                state ^= space;
+                state *= 0x100000001b3;
+                state ^= cur[x][y];
+                state *= 0x100000001b3;
                 space = 0;
+                continue;
             }
             ++space;
         }
     }
     transTableMutex.lock();
-    bool contDownBranch = transTable.insert(key).second;
+    bool contDownBranch = transTable.insert(state).second;
     transTableMutex.unlock();
     return contDownBranch;
 }
@@ -202,7 +204,7 @@ bool solveState::solve() {
                 cur[toX][toY] = abs(beforeTo + beforeFrom * times);
                 if ((!cur[toX][toY] && (non0s.size() == 2 || 
                                         checkIfRemovingCardinallyIsolates(cur, toX, toY))) || 
-                    !tryInsert(cur, non0s.size()))
+                    !tryInsert(cur))
                     continue;
                 if (!cur[toX][toY]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
