@@ -2,14 +2,15 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
-#include <set>
+#include <unordered_set>
 #include <atomic>
 #include <mutex>
+#include <Windows.h>
 
 using std::cout; using std::endl; using std::vector; using std::move; using std::ref;
 const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 
-std::set<uint64_t> transTable;
+std::unordered_set<uint64_t> transTable;
 std::atomic_bool stopSearch;
 std::mutex transTableMutex;
 int resultOffsetX, resultOffsetY;
@@ -35,7 +36,8 @@ bool tryInsert(vector<vector<int>>& cur) {
     transTableMutex.unlock();
     return contDownBranch;
 }
-int main(){
+int main() {
+    SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
     while (true) {
         stopSearch = false;
         resultOffsetX = 0; resultOffsetY = 0;
@@ -56,7 +58,7 @@ int main(){
         pwomp.non0s.shrink_to_fit();
         trimGrid(pwomp.cur);
         for (int i = 0; i < pwomp.non0s.size(); ++i)
-            pwomp.non0s[i] = {pwomp.non0s[i].first - resultOffsetX, pwomp.non0s[i].second - resultOffsetY};
+            pwomp.non0s[i] = { pwomp.non0s[i].first - resultOffsetX, pwomp.non0s[i].second - resultOffsetY };
         cout << "\nx, y offset : " << resultOffsetX << ", " << resultOffsetY << '\n';
         for (size_t y = 0; y < pwomp.cur[0].size(); ++y) {
             for (size_t x = 0; x < pwomp.cur.size(); ++x) {
@@ -71,19 +73,19 @@ int main(){
             a.non0s = pwomp.non0s;
             a.solve();
         };
-        std::thread solveThread0(solveThreadLambda);
-        std::thread solveThread1(solveThreadLambda);
-        std::thread solveThread2(solveThreadLambda);
+        vector<std::thread> solveThreads;
+        solveThreads.reserve(11);
+        for (int i = 0; i < 23; ++i)
+            solveThreads.emplace_back(solveThreadLambda);
         pwomp.solve();
-        solveThread0.join();
-        solveThread1.join();
-        solveThread2.join();
+        for (int i = 0; i < solveThreads.size(); ++i)
+            solveThreads[i].join();
         cout << "transTable.size(): " << transTable.size() << endl;
         transTable.clear();
     }
 }
 
-void trimGrid(std::vector<std::vector<int>>& cur) {
+void trimGrid(vector<vector<int>>& cur) {
 shaveStart:
     for (size_t x = cur.size(); x--;) {
         for (size_t y = cur[0].size(); y--;) {
@@ -125,7 +127,7 @@ pastShaves:
     for (int x = 0; x < cur.size(); ++x)
         cur[x].shrink_to_fit();
 }
-bool checkIfRemovingCardinallyIsolates(std::vector<std::vector<int>>& cur, int x, int y){//make recursive?
+bool checkIfRemovingCardinallyIsolates(vector<vector<int>>& cur, int x, int y) {//make recursive?
     int found = -1;
     for (int checkY = 0; checkY < cur[0].size(); ++checkY) {
         if (checkY == y) continue;
@@ -161,7 +163,7 @@ pastUpDown:
     }
     return false;
 }
-bool outputToFileAndReturnTrue(std::vector<std::array<int, 4>>& moves) {
+bool outputToFileAndReturnTrue(vector<std::array<int, 4>>& moves) {
     stopSearch = true;
     std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt", std::fstream::app);
     outFile << "cout << \"";
@@ -176,10 +178,39 @@ bool outputToFileAndReturnTrue(std::vector<std::array<int, 4>>& moves) {
     system("start notepad \"C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt\"");
     return true;
 }
+/*void _getConnectedVertexCountHelper(vector<vector<bool>>& visited, std::vector<std::vector<int>>& cur, int x, int y) {
+    visited[x][y] = true;
+    for (int ySearch = 0; ySearch < cur[0].size(); ++ySearch) {
+        if (ySearch == y)
+            continue;
+        if (cur[x][ySearch] && !visited[x][ySearch])
+            _getConnectedVertexCountHelper(visited, cur, x, ySearch);
+    }
+    for (int xSearch = 0; xSearch < cur.size(); ++xSearch) {
+        if (xSearch == x)
+            continue;
+        if (cur[xSearch][y] && !visited[xSearch][y])
+            _getConnectedVertexCountHelper(visited, cur, xSearch, y);
+    }
+}
+int getConnectedVertexCount(std::vector<std::vector<int>>& cur, int x, int y){
+    vector<vector<bool>> visited(cur.size(), vector<bool>(cur[0].size(), false));
+    _getConnectedVertexCountHelper(visited, cur, x, y);
+    return visited.size();
+}*/
 bool solveState::solve() {
     for (int non0sFromIndex = 0; non0sFromIndex < non0s.size(); ++non0sFromIndex) {
-        if (stopSearch)
-            return true;
+        /*int fromX = non0s[non0sFromIndex].first;
+        int fromY = non0s[non0sFromIndex].second;
+        int beforeFrom = cur[fromX][fromY];
+        cur[fromX][fromY] = 0;
+        non0s[non0sFromIndex] = non0s.back();
+        non0s.pop_back();
+        if (getConnectedVertexCount(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second) != non0s.size()) {
+            non0s.emplace_back(fromX, fromY);
+            cur[fromX][fromY] = beforeFrom;
+            continue;
+        }*/
         if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second))
             continue;
         int fromX = non0s[non0sFromIndex].first;
@@ -190,8 +221,6 @@ bool solveState::solve() {
         cur[fromX][fromY] = 0;
 
         for (int dir = 0; dir < 4; ++dir) {
-            if (stopSearch)
-                return true;
             int toX = fromX + beforeFrom * dirMults[dir];
             int toY = fromY + beforeFrom * dirMults[3 - dir];
             if (toX < 0 || toX >= cur.size() || toY < 0 || toY >= cur[0].size() || !cur[toX][toY])
@@ -199,11 +228,9 @@ bool solveState::solve() {
 
             int beforeTo = cur[toX][toY];
             for (int times = -1; times < 2; times += 2) {
-                if (stopSearch)
-                    return true;
                 cur[toX][toY] = abs(beforeTo + beforeFrom * times);
-                if ((!cur[toX][toY] && (non0s.size() == 2 || 
-                                        checkIfRemovingCardinallyIsolates(cur, toX, toY))) || 
+                if ((!cur[toX][toY] && (non0s.size() == 2 ||
+                    checkIfRemovingCardinallyIsolates(cur, toX, toY))) ||
                     !tryInsert(cur))
                     continue;
                 if (!cur[toX][toY]) {//remove matching entry from non0s
@@ -216,7 +243,7 @@ bool solveState::solve() {
                     }
                 }
                 moves.push_back({ fromX, fromY, dir, times });
-                if ((!non0s.size() && outputToFileAndReturnTrue(moves)) || solve())
+                if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue(moves)) || solve())
                     return true;
                 moves.pop_back();
                 if (!cur[toX][toY])
