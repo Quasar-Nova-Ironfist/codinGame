@@ -15,7 +15,7 @@ std::atomic_bool stopSearch;
 std::mutex transTableMutex;
 int resultOffsetX, resultOffsetY;
 
-bool tryInsert(vector<vector<int>>& cur) {
+bool solveState::tryInsert() {
     uint64_t state = 0xcbf29ce484222325;
     int space = 0;
     for (int y = 0; y < cur[0].size(); ++y) {
@@ -127,7 +127,7 @@ pastShaves:
     for (int x = 0; x < cur.size(); ++x)
         cur[x].shrink_to_fit();
 }
-bool checkIfRemovingCardinallyIsolates(vector<vector<int>>& cur, int x, int y) {//make recursive?
+bool solveState::checkIfRemovingCardinallyIsolates(int x, int y) {//make recursive?
     int found = -1;
     for (int checkY = 0; checkY < cur[0].size(); ++checkY) {
         if (checkY == y) continue;
@@ -163,7 +163,7 @@ pastUpDown:
     }
     return false;
 }
-bool outputToFileAndReturnTrue(vector<std::array<int, 4>>& moves) {
+bool solveState::outputToFileAndReturnTrue() {
     stopSearch = true;
     std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt", std::fstream::app);
     outFile << "cout << \"";
@@ -200,18 +200,7 @@ int getConnectedVertexCount(std::vector<std::vector<int>>& cur, int x, int y){
 }*/
 bool solveState::solve() {
     for (int non0sFromIndex = 0; non0sFromIndex < non0s.size(); ++non0sFromIndex) {
-        /*int fromX = non0s[non0sFromIndex].first;
-        int fromY = non0s[non0sFromIndex].second;
-        int beforeFrom = cur[fromX][fromY];
-        cur[fromX][fromY] = 0;
-        non0s[non0sFromIndex] = non0s.back();
-        non0s.pop_back();
-        if (getConnectedVertexCount(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second) != non0s.size()) {
-            non0s.emplace_back(fromX, fromY);
-            cur[fromX][fromY] = beforeFrom;
-            continue;
-        }*/
-        if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second))
+        if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(non0s[non0sFromIndex].first, non0s[non0sFromIndex].second))
             continue;
         int fromX = non0s[non0sFromIndex].first;
         int fromY = non0s[non0sFromIndex].second;
@@ -230,8 +219,8 @@ bool solveState::solve() {
             for (int times = -1; times < 2; times += 2) {
                 cur[toX][toY] = abs(beforeTo + beforeFrom * times);
                 if ((!cur[toX][toY] && (non0s.size() == 2 ||
-                    checkIfRemovingCardinallyIsolates(cur, toX, toY))) ||
-                    !tryInsert(cur))
+                    checkIfRemovingCardinallyIsolates(toX, toY))) ||
+                    !tryInsert())
                     continue;
                 if (!cur[toX][toY]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
@@ -243,7 +232,7 @@ bool solveState::solve() {
                     }
                 }
                 moves.push_back({ fromX, fromY, dir, times });
-                if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue(moves)) || solve())
+                if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue()) || solve())
                     return true;
                 moves.pop_back();
                 if (!cur[toX][toY])
