@@ -7,7 +7,7 @@
 #include <mutex>
 #include <Windows.h>
 
-using std::cout; using std::endl; using std::vector; using std::move; using std::ref;
+using std::cout; using std::endl; using std::vector; using std::move; using std::pair;
 const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 
 std::unordered_set<uint64_t> transTable;
@@ -15,7 +15,7 @@ std::atomic_bool stopSearch;
 std::mutex transTableMutex;
 int resultOffsetX, resultOffsetY;
 
-bool tryInsert(vector<vector<int>>& cur) {
+bool solveState::tryInsert() {
     uint64_t state = 0xcbf29ce484222325;
     int space = 0;
     for (int y = 0; y < cur[0].size(); ++y) {
@@ -127,11 +127,11 @@ pastShaves:
     for (int x = 0; x < cur.size(); ++x)
         cur[x].shrink_to_fit();
 }
-bool checkIfRemovingCardinallyIsolates(vector<vector<int>>& cur, int x, int y) {//make recursive?
+bool solveState::checkIfRemovingCardinallyIsolates(std::pair<int, int>& pos) {//make recursive?
     int found = -1;
     for (int checkY = 0; checkY < cur[0].size(); ++checkY) {
-        if (checkY == y) continue;
-        if (cur[x][checkY]) {
+        if (checkY == pos.second) continue;
+        if (cur[pos.first][checkY]) {
             if (found != -1)
                 goto pastUpDown;
             found = checkY;
@@ -139,7 +139,7 @@ bool checkIfRemovingCardinallyIsolates(vector<vector<int>>& cur, int x, int y) {
     }
     if (found != -1) {
         for (int checkX = 0; checkX < cur.size(); ++checkX) {
-            if (cur[checkX][found] && checkX != x)
+            if (cur[checkX][found] && checkX != pos.first)
                 goto pastUpDown;
         }
         return true;
@@ -147,8 +147,8 @@ bool checkIfRemovingCardinallyIsolates(vector<vector<int>>& cur, int x, int y) {
 pastUpDown:
     found = -1;
     for (int checkX = 0; checkX < cur.size(); ++checkX) {
-        if (checkX == x) continue;
-        if (cur[checkX][y]) {
+        if (checkX == pos.first) continue;
+        if (cur[checkX][pos.second]) {
             if (found != -1)
                 return false;
             found = checkX;
@@ -156,14 +156,14 @@ pastUpDown:
     }
     if (found != -1) {
         for (int checkY = 0; checkY < cur[0].size(); ++checkY) {
-            if (cur[found][checkY] && checkY != y)
+            if (cur[found][checkY] && checkY != pos.second)
                 return false;
         }
         return true;
     }
     return false;
 }
-bool outputToFileAndReturnTrue(vector<std::array<int, 4>>& moves) {
+bool solveState::outputToFileAndReturnTrue() {
     stopSearch = true;
     std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt", std::fstream::app);
     outFile << "cout << \"";
@@ -199,60 +199,55 @@ int getConnectedVertexCount(std::vector<std::vector<int>>& cur, int x, int y){
     return visited.size();
 }*/
 bool solveState::solve() {
-    for (int non0sFromIndex = 0; non0sFromIndex < non0s.size(); ++non0sFromIndex) {
-        /*int fromX = non0s[non0sFromIndex].first;
-        int fromY = non0s[non0sFromIndex].second;
-        int beforeFrom = cur[fromX][fromY];
-        cur[fromX][fromY] = 0;
+    vector<std::pair<int, int>> non0sCopy = non0s;
+    //for (int qweplo = 0; qweplo < non0sCopy.size(); ++qweplo) {
+    //    if(non0sCopy.size() > 2 && checkIfRemovingCardinallyIsolates(non0sCopy[qweplo]))
+    //}
+
+    for (int non0sFromIndex = 0; non0sFromIndex < non0s.size(); ++non0sFromIndex) {//iterate through copy b/c aaaaaaa the mutation it burrrrrns
+        if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(non0s[non0sFromIndex]))
+            continue;
+        pair<int, int> from = non0s[non0sFromIndex];
         non0s[non0sFromIndex] = non0s.back();
         non0s.pop_back();
-        if (getConnectedVertexCount(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second) != non0s.size()) {
-            non0s.emplace_back(fromX, fromY);
-            cur[fromX][fromY] = beforeFrom;
-            continue;
-        }*/
-        if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(cur, non0s[non0sFromIndex].first, non0s[non0sFromIndex].second))
-            continue;
-        int fromX = non0s[non0sFromIndex].first;
-        int fromY = non0s[non0sFromIndex].second;
-        non0s[non0sFromIndex] = non0s.back();
-        non0s.pop_back();
-        int beforeFrom = cur[fromX][fromY];
-        cur[fromX][fromY] = 0;
+        int beforeFrom = cur[from.first][from.second];
+        cur[from.first][from.second] = 0;
 
         for (int dir = 0; dir < 4; ++dir) {
-            int toX = fromX + beforeFrom * dirMults[dir];
-            int toY = fromY + beforeFrom * dirMults[3 - dir];
-            if (toX < 0 || toX >= cur.size() || toY < 0 || toY >= cur[0].size() || !cur[toX][toY])
+            pair<int, int> to = {
+                from.first + beforeFrom * dirMults[dir],
+                from.second + beforeFrom * dirMults[3 - dir]
+            };
+            if (to.first < 0 || to.first >= cur.size() || to.second < 0 || to.second >= cur[0].size() || !cur[to.first][to.second])
                 continue;
 
-            int beforeTo = cur[toX][toY];
+            int beforeTo = cur[to.first][to.second];
             for (int times = -1; times < 2; times += 2) {
-                cur[toX][toY] = abs(beforeTo + beforeFrom * times);
-                if ((!cur[toX][toY] && (non0s.size() == 2 ||
-                    checkIfRemovingCardinallyIsolates(cur, toX, toY))) ||
-                    !tryInsert(cur))
+                cur[to.first][to.second] = abs(beforeTo + beforeFrom * times);
+                if ((!cur[to.first][to.second] && (non0s.size() == 2 ||
+                    checkIfRemovingCardinallyIsolates(to))) ||
+                    !tryInsert())
                     continue;
-                if (!cur[toX][toY]) {//remove matching entry from non0s
+                if (!cur[to.first][to.second]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
-                        if (non0s[i].first == toX && non0s[i].second == toY) {
+                        if (non0s[i].first == to.first && non0s[i].second == to.second) {
                             non0s[i] = non0s.back();
                             non0s.pop_back();
                             break;
                         }
                     }
                 }
-                moves.push_back({ fromX, fromY, dir, times });
-                if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue(moves)) || solve())
+                moves.push_back({ from.first, from.second, dir, times });
+                if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue()) || solve())
                     return true;
                 moves.pop_back();
-                if (!cur[toX][toY])
-                    non0s.emplace_back(toX, toY);
+                if (!cur[to.first][to.second])
+                    non0s.emplace_back(to.first, to.second);
             }
-            cur[toX][toY] = beforeTo;
+            cur[to.first][to.second] = beforeTo;
         }
-        non0s.emplace_back(fromX, fromY);
-        cur[fromX][fromY] = beforeFrom;
+        non0s.emplace_back(from.first, from.second);
+        cur[from.first][from.second] = beforeFrom;
     }
     return false;
 }
