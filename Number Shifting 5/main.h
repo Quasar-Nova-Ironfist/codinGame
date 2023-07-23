@@ -9,5 +9,7 @@ struct solveState {
 	bool checkIfRemovingCardinallyIsolates(std::pair<int, int>& pos);
 	bool outputToFileAndReturnTrue();
 	bool tryInsert();
+	solveState() {}
+	solveState(solveState& other);
 };
 void trimGrid(std::vector<std::vector<int>>& cur);
