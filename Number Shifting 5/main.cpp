@@ -199,9 +199,27 @@ int solveState::isolates(int x, int y){
 bool solveState::solve() {
     vector<pair<int, int>> non0sCopy = non0s;
     for (int qweplo = 0; qweplo < non0sCopy.size(); ++qweplo) {
-        if (non0sCopy.size() > 2 && checkIfRemovingCardinallyIsolates(non0sCopy[qweplo]))
-            continue;
         pair<int, int> from = non0sCopy[qweplo];
+        int beforeFrom = cur[from.first][from.second];
+        cur[from.first][from.second] = 0;
+        if (non0s[0] == from) {
+            if (isolates(non0s[1].first, non0s[1].second) != non0s.size() - 1) {
+                cur[from.first][from.second] = beforeFrom;
+                continue;
+            }
+        }
+        else {
+            if (isolates(non0s[0].first, non0s[0].second) != non0s.size() - 1) {
+                cur[from.first][from.second] = beforeFrom;
+                continue;
+            }
+        }
+
+        //if ((non0s[0] == from && isolates(non0s[1].first, non0s[1].second) != non0s.size() - 1) || (non0s[0] != from && isolates(non0s[0].first, non0s[0].second) != non0s.size() - 1)) {
+        //    cur[from.first][from.second] = beforeFrom;
+        //    continue;
+        //}
+
         for (int i = 0; i < non0s.size(); ++i) {
             if (from == non0s[i]) {
                 non0s[i] = non0s.back();
@@ -209,9 +227,7 @@ bool solveState::solve() {
                 break;
             }
         }
-        int beforeFrom = cur[from.first][from.second];
-        cur[from.first][from.second] = 0;
-
+        
         for (int dir = 0; dir < 4; ++dir) {
             pair<int, int> to = {
                 from.first + beforeFrom * dirMults[dir],
