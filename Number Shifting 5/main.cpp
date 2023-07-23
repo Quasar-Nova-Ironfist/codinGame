@@ -6,12 +6,12 @@
 #include <mutex>
 #include <Windows.h>
 #include <parallel_hashmap/phmap.h>
-#include <chrono>
+//#include <chrono>
 
 using std::cout; using std::endl; using std::vector; using std::move; using std::pair;
 const int dirMults[4] = { 0, 1, 0, -1 };// x: i, y: 3 - i
 
-phmap::parallel_flat_hash_set<uint64_t, phmap::Hash<uint64_t>, phmap::EqualTo<uint64_t>, std::allocator<uint64_t>, 4, std::mutex> transTable;//TODO benchmark N
+phmap::parallel_flat_hash_set<uint64_t, phmap::Hash<uint64_t>, phmap::EqualTo<uint64_t>, std::allocator<uint64_t>, 6, std::mutex> transTable;//TODO benchmark N
 std::atomic_bool stopSearch;
 pair<int, int> resultOffsets;
 
@@ -42,7 +42,6 @@ solveState::solveState(solveState& other){
 int main() {
     SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
     while (true) {
-        auto timeStart = std::chrono::steady_clock::now();
         stopSearch = false;
         resultOffsets = std::make_pair(0, 0);
         int width, height;
@@ -72,6 +71,7 @@ int main() {
             cout << endl;
         }
 
+        //auto timeStart = std::chrono::steady_clock::now();
         vector<std::thread> solveThreads;
         solveThreads.reserve(11);//TODO benchmark different thread counts
         for (int i = 0; i < solveThreads.capacity(); ++i)
@@ -81,7 +81,7 @@ int main() {
             solveThreads[i].join();
         cout << "transTable.size(): " << transTable.size() << endl;
         transTable.clear();
-        cout << "Time: " << std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - timeStart).count();
+        //cout << "Time: " << std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - timeStart).count() << endl;
     }
 }
 
@@ -178,26 +178,24 @@ bool solveState::outputToFileAndReturnTrue() {
     system("start notepad \"C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt\"");
     return true;
 }
-/*void _getConnectedVertexCountHelper(vector<vector<bool>>& visited, std::vector<std::vector<int>>& cur, int x, int y) {
-    visited[x][y] = true;
+void solveState::_isolationIteration(vector<vector<char>>& vis, int& found, int x, int y){
+    vis[x][y] = true;
+    ++found;
     for (int ySearch = 0; ySearch < cur[0].size(); ++ySearch) {
-        if (ySearch == y)
-            continue;
-        if (cur[x][ySearch] && !visited[x][ySearch])
-            _getConnectedVertexCountHelper(visited, cur, x, ySearch);
+        if (ySearch != y && cur[x][ySearch] && !vis[x][ySearch])
+            _isolationIteration(vis, found, x, ySearch);
     }
     for (int xSearch = 0; xSearch < cur.size(); ++xSearch) {
-        if (xSearch == x)
-            continue;
-        if (cur[xSearch][y] && !visited[xSearch][y])
-            _getConnectedVertexCountHelper(visited, cur, xSearch, y);
+        if (xSearch != x && cur[xSearch][y] && !vis[xSearch][y])
+            _isolationIteration(vis, found, xSearch, y);
     }
 }
-int getConnectedVertexCount(std::vector<std::vector<int>>& cur, int x, int y){
-    vector<vector<bool>> visited(cur.size(), vector<bool>(cur[0].size(), false));
-    _getConnectedVertexCountHelper(visited, cur, x, y);
-    return visited.size();
-}*/
+int solveState::isolates(int x, int y){
+    int found = 0;
+    vector<vector<char>> vis(cur.size(), vector<char>(cur[0].size(), 0));
+    _isolationIteration(vis, found, x, y);
+    return found;
+}
 bool solveState::solve() {
     vector<pair<int, int>> non0sCopy = non0s;
     for (int qweplo = 0; qweplo < non0sCopy.size(); ++qweplo) {

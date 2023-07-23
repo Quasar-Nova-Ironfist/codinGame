@@ -7,6 +7,8 @@ struct solveState {
 	std::vector<std::pair<int, int>> non0s;
 	bool solve();
 	bool checkIfRemovingCardinallyIsolates(std::pair<int, int>& pos);
+	int isolates(int x, int y);
+	void _isolationIteration(std::vector<std::vector<char>>& vis, int& found, int x, int y);
 	bool outputToFileAndReturnTrue();
 	bool tryInsert();
 	solveState() {}
