@@ -56,6 +56,7 @@ int main() {
             }
         }
         pwomp.non0s.shrink_to_fit();
+        pwomp.moves.reserve(pwomp.non0s.size() - 1);
         trimGrid(pwomp.cur);
         for (int i = 0; i < pwomp.non0s.size(); ++i)
             pwomp.non0s[i] = { pwomp.non0s[i].first - resultOffsetX, pwomp.non0s[i].second - resultOffsetY };
@@ -71,13 +72,14 @@ int main() {
             solveState a;
             a.cur = pwomp.cur;
             a.non0s = pwomp.non0s;
+            a.moves.reserve(pwomp.moves.capacity());
             a.solve();
         };
         vector<std::thread> solveThreads;
         solveThreads.reserve(11);
         for (int i = 0; i < 23; ++i)
             solveThreads.emplace_back(solveThreadLambda);
-        pwomp.solve();
+        pwomp.solve();        
         for (int i = 0; i < solveThreads.size(); ++i)
             solveThreads[i].join();
         cout << "transTable.size(): " << transTable.size() << endl;
@@ -200,10 +202,26 @@ int getConnectedVertexCount(std::vector<std::vector<int>>& cur, int x, int y){
 }*/
 bool solveState::solve() {
     vector<std::pair<int, int>> non0sCopy = non0s;
-    //for (int qweplo = 0; qweplo < non0sCopy.size(); ++qweplo) {
-    //    if(non0sCopy.size() > 2 && checkIfRemovingCardinallyIsolates(non0sCopy[qweplo]))
-    //}
+    /*for (int qweplo = 0; qweplo < non0sCopy.size(); ++qweplo) {
+        if (non0sCopy.size() > 2 && checkIfRemovingCardinallyIsolates(non0sCopy[qweplo]))
+            continue;
+        pair<int, int> from = non0sCopy[qweplo];
+        for (int i = 0; i < non0s.size(); ++i) {
+            if (from == non0s[i]) {
+                non0s[i] = non0s.back();
+                non0s.pop_back();
+                break;
+            }
+        }
+        int beforeFrom = cur[from.first][from.second];
+        cur[from.first][from.second] = 0;
 
+
+        non0s.emplace_back(from.first, from.second);
+        cur[from.first][from.second] = beforeFrom;
+    }
+    return false;
+    */
     for (int non0sFromIndex = 0; non0sFromIndex < non0s.size(); ++non0sFromIndex) {//iterate through copy b/c aaaaaaa the mutation it burrrrrns
         if (non0s.size() > 2 && checkIfRemovingCardinallyIsolates(non0s[non0sFromIndex]))
             continue;
