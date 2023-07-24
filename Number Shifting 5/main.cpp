@@ -214,18 +214,10 @@ bool solveState::solve() {
         pair<int, int> from = non0sCopy[qweplo];
         int beforeFrom = cur[from.first][from.second];
         cur[from.first][from.second] = 0;
-        
-        try {
-            if (isolates(from)) {
-                cur[from.first][from.second] = beforeFrom;
-                continue;
-            }
+        if (isolates(from)) {
+            cur[from.first][from.second] = beforeFrom;
+            continue;
         }
-        catch (const std::exception& e) {
-            cout << e.what() << endl;
-            exit(0);
-        }
-        
         for (int i = 0; i < non0s.size(); ++i) {
             if (from == non0s[i]) {
                 non0s[i] = non0s.back();
@@ -245,16 +237,8 @@ bool solveState::solve() {
             int beforeTo = cur[to.first][to.second];
             for (int times = -1; times < 2; times += 2) {
                 cur[to.first][to.second] = abs(beforeTo + beforeFrom * times);
-                
-                try {
-                    if ((!cur[to.first][to.second] && (non0s.size() == 2 || isolates(to))) || !tryInsert())
-                        continue;
-                }
-                catch (const std::exception& e) {
-                    cout << e.what() << endl;
-                    exit(0);
-                }
-
+                if ((!cur[to.first][to.second] && (non0s.size() == 2 || isolates(to))) || !tryInsert())
+                    continue;
                 if (!cur[to.first][to.second]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
                         if (non0s[i].first == to.first && non0s[i].second == to.second) {
