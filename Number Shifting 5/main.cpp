@@ -21,10 +21,10 @@ bool solveState::tryInsert() {//no idea how terrible this is
     for (int y = 0; y < cur[0].size(); ++y) {
         for (int x = 0; x < cur.size(); ++x) {
             if (cur[x][y]) {
-                state ^= space;
+                state *= 0x100000001b3;
+                state ^= space;//might need to be updated to operate on each byte of these ints, but for now this ***seems*** to work
                 state *= 0x100000001b3;
                 state ^= cur[x][y];
-                state *= 0x100000001b3;
                 space = 0;
                 continue;
             }
@@ -75,9 +75,9 @@ int main() {
 
         //auto timeStart = std::chrono::steady_clock::now();
         vector<std::thread> solveThreads;
-        solveThreads.reserve(11);//TODO benchmark different thread counts
-        for (int i = 0; i < solveThreads.capacity(); ++i)
-            solveThreads.emplace_back([&pwomp] {solveState(pwomp).solve(); });
+        //solveThreads.reserve(11);//TODO benchmark different thread counts
+        //for (int i = 0; i < solveThreads.capacity(); ++i)
+        //    solveThreads.emplace_back([&pwomp] {solveState(pwomp).solve(); });
         pwomp.solve();
         for (int i = 0; i < solveThreads.size(); ++i)
             solveThreads[i].join();
@@ -86,7 +86,6 @@ int main() {
         //cout << "Time: " << std::chrono::duration_cast<std::chrono::duration<double>>(std::chrono::steady_clock::now() - timeStart).count() << endl;
     }
 }
-
 void trimGrid(vector<vector<int>>& cur) {
 shaveStart:
     for (size_t x = cur.size(); x--;) {
@@ -181,37 +180,32 @@ bool solveState::outputToFileAndReturnTrue() {
     return true;
 }
 void solveState::_isolationIterationUpDown(int x){
-    ++_isolationCheckFoundCount;
     for (int ySearch = 0; ySearch < cur[0].size(); ++ySearch) {
-        if (cur[x][ySearch] && !_isolationCheckVisisted[x][ySearch]) {//ySearch != y not needed b/c vis[x][y] true
+        if (cur[x][ySearch] && !_isolationCheckVisisted[x][ySearch]) {//ySearch != y not needed b/c vis[x][ySearch] true
+            ++_isolationCheckFoundCount;
             _isolationCheckVisisted[x][ySearch] = 1;
             _isolationIterationLeftRight(ySearch);
         }
     }
 }
 void solveState::_isolationIterationLeftRight(int y){
-    ++_isolationCheckFoundCount;
     for (int xSearch = 0; xSearch < cur.size(); ++xSearch) {
         if (cur[xSearch][y] && !_isolationCheckVisisted[xSearch][y]) {
+            ++_isolationCheckFoundCount;
             _isolationCheckVisisted[xSearch][y] = 1;
             _isolationIterationUpDown(xSearch);
         }
     }
 }
-bool solveState::isolates(pair<int, int> posRemoved){
-    _isolationCheckFoundCount = -2;//+1 per iteration below, shadow +1 b/c count != non0s.size() - 1 -> count != non0s.size() 
+bool solveState::isolates(pair<int, int> posRemoved) {
+    _isolationCheckFoundCount = 2;//2 not 1 b/c count != non0s.size() - 1 -> count != non0s.size() 
     for (pair<int, int>& pos : non0s)//reset only relevant ones rather than looping through entire 2d vector
         _isolationCheckVisisted[pos.first][pos.second] = 0;
-    if (posRemoved == non0s[0]) {
-        _isolationCheckVisisted[non0s[1].first][non0s[1].second] = 1;
-        _isolationIterationUpDown(non0s[1].first);
-        _isolationIterationLeftRight(non0s[1].second);
-    }
-    else {
-        _isolationCheckVisisted[non0s[0].first][non0s[0].second] = 1;
-        _isolationIterationUpDown(non0s[0].first);
-        _isolationIterationLeftRight(non0s[0].second);
-    }  
+    bool index = posRemoved == non0s[0];
+    //cout << odgldgjdoh << " index: " << index << ", non0s.size(): " << non0s.size() << endl;
+    _isolationCheckVisisted[non0s[index].first][non0s[index].second] = 1;
+    _isolationIterationUpDown(non0s[index].first);
+    _isolationIterationLeftRight(non0s[index].second);
     return _isolationCheckFoundCount != non0s.size();
 }
 bool solveState::solve() {
@@ -220,10 +214,18 @@ bool solveState::solve() {
         pair<int, int> from = non0sCopy[qweplo];
         int beforeFrom = cur[from.first][from.second];
         cur[from.first][from.second] = 0;
-        if (isolates(from)) {
-            cur[from.first][from.second] = beforeFrom;
-            continue;
+        
+        try {
+            if (isolates(from)) {
+                cur[from.first][from.second] = beforeFrom;
+                continue;
+            }
         }
+        catch (const std::exception& e) {
+            cout << e.what() << endl;
+            exit(0);
+        }
+        
         for (int i = 0; i < non0s.size(); ++i) {
             if (from == non0s[i]) {
                 non0s[i] = non0s.back();
@@ -243,8 +245,16 @@ bool solveState::solve() {
             int beforeTo = cur[to.first][to.second];
             for (int times = -1; times < 2; times += 2) {
                 cur[to.first][to.second] = abs(beforeTo + beforeFrom * times);
-                if ((!cur[to.first][to.second] && (non0s.size() == 2 || isolates(to))) || !tryInsert())
-                    continue;
+                
+                try {
+                    if ((!cur[to.first][to.second] && (non0s.size() == 2 || isolates(to))) || !tryInsert())
+                        continue;
+                }
+                catch (const std::exception& e) {
+                    cout << e.what() << endl;
+                    exit(0);
+                }
+
                 if (!cur[to.first][to.second]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
                         if (non0s[i].first == to.first && non0s[i].second == to.second) {
