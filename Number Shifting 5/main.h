@@ -6,9 +6,12 @@ struct solveState {
 	std::vector<std::array<int, 4>> moves;//x, y, dir, times
 	std::vector<std::pair<int, int>> non0s;
 	bool solve();
-	bool checkIfRemovingCardinallyIsolates(std::pair<int, int>& pos);
-	int isolates(int x, int y);
-	void _isolationIteration(std::vector<std::vector<char>>& vis, int& found, int x, int y);
+	//bool checkIfRemovingCardinallyIsolates(std::pair<int, int>& pos);
+	bool isolates(std::pair<int, int> pos);
+	std::vector<std::vector<char>> _isolationCheckVisisted;//avoid allocation all this space every time it checks if removing a tile isolates others
+	int _isolationCheckFoundCount;//might as well have this here since ^ anyway
+	void _isolationIterationUpDown(int x);
+	void _isolationIterationLeftRight(int y);
 	bool outputToFileAndReturnTrue();
 	bool tryInsert();
 	solveState() {}

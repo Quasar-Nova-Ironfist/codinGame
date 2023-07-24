@@ -38,6 +38,7 @@ solveState::solveState(solveState& other){
     this->moves = other.moves;//this is unneeded when this is called in main, but I'm including this here just so I don't forget not to if the copy constructor is later called in solve()
     this->moves.reserve(other.moves.capacity());
     this->non0s = other.non0s;
+    this->_isolationCheckVisisted = other._isolationCheckVisisted;
 }
 int main() {
     SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
@@ -60,6 +61,7 @@ int main() {
         }
         pwomp.non0s.shrink_to_fit();
         pwomp.moves.reserve(pwomp.non0s.size() - 1);
+        pwomp._isolationCheckVisisted.assign(width, vector<char>(height, 0));
         trimGrid(pwomp.cur);
         for (int i = 0; i < pwomp.non0s.size(); ++i)
             pwomp.non0s[i] = { pwomp.non0s[i].first - resultOffsets.first, pwomp.non0s[i].second - resultOffsets.second};
@@ -127,7 +129,7 @@ pastShaves:
     for (int x = 0; x < cur.size(); ++x)
         cur[x].shrink_to_fit();
 }
-bool solveState::checkIfRemovingCardinallyIsolates(pair<int, int>& pos) {//make recursive?
+/*bool solveState::checkIfRemovingCardinallyIsolates(pair<int, int>& pos) {//make recursive?
     int found = -1;
     for (int checkY = 0; checkY < cur[0].size(); ++checkY) {
         if (checkY == pos.second) continue;
@@ -162,7 +164,7 @@ pastUpDown:
         return true;
     }
     return false;
-}
+}*/
 bool solveState::outputToFileAndReturnTrue() {
     stopSearch = true;
     std::ofstream outFile("C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt", std::fstream::app);
@@ -178,23 +180,39 @@ bool solveState::outputToFileAndReturnTrue() {
     system("start notepad \"C:/Users/Quasar/source/repos/codinGame/Number Shifting 5/output.txt\"");
     return true;
 }
-void solveState::_isolationIteration(vector<vector<char>>& vis, int& found, int x, int y){
-    vis[x][y] = true;
-    ++found;
+void solveState::_isolationIterationUpDown(int x){
+    ++_isolationCheckFoundCount;
     for (int ySearch = 0; ySearch < cur[0].size(); ++ySearch) {
-        if (ySearch != y && cur[x][ySearch] && !vis[x][ySearch])
-            _isolationIteration(vis, found, x, ySearch);
-    }
-    for (int xSearch = 0; xSearch < cur.size(); ++xSearch) {
-        if (xSearch != x && cur[xSearch][y] && !vis[xSearch][y])
-            _isolationIteration(vis, found, xSearch, y);
+        if (cur[x][ySearch] && !_isolationCheckVisisted[x][ySearch]) {//ySearch != y not needed b/c vis[x][y] true
+            _isolationCheckVisisted[x][ySearch] = 1;
+            _isolationIterationLeftRight(ySearch);
+        }
     }
 }
-int solveState::isolates(int x, int y){
-    int found = 0;
-    vector<vector<char>> vis(cur.size(), vector<char>(cur[0].size(), 0));
-    _isolationIteration(vis, found, x, y);
-    return found;
+void solveState::_isolationIterationLeftRight(int y){
+    ++_isolationCheckFoundCount;
+    for (int xSearch = 0; xSearch < cur.size(); ++xSearch) {
+        if (cur[xSearch][y] && !_isolationCheckVisisted[xSearch][y]) {
+            _isolationCheckVisisted[xSearch][y] = 1;
+            _isolationIterationUpDown(xSearch);
+        }
+    }
+}
+bool solveState::isolates(pair<int, int> posRemoved){
+    _isolationCheckFoundCount = -2;//+1 per iteration below, shadow +1 b/c count != non0s.size() - 1 -> count != non0s.size() 
+    for (pair<int, int>& pos : non0s)//reset only relevant ones rather than looping through entire 2d vector
+        _isolationCheckVisisted[pos.first][pos.second] = 0;
+    if (posRemoved == non0s[0]) {
+        _isolationCheckVisisted[non0s[1].first][non0s[1].second] = 1;
+        _isolationIterationUpDown(non0s[1].first);
+        _isolationIterationLeftRight(non0s[1].second);
+    }
+    else {
+        _isolationCheckVisisted[non0s[0].first][non0s[0].second] = 1;
+        _isolationIterationUpDown(non0s[0].first);
+        _isolationIterationLeftRight(non0s[0].second);
+    }  
+    return _isolationCheckFoundCount != non0s.size();
 }
 bool solveState::solve() {
     vector<pair<int, int>> non0sCopy = non0s;
@@ -202,24 +220,10 @@ bool solveState::solve() {
         pair<int, int> from = non0sCopy[qweplo];
         int beforeFrom = cur[from.first][from.second];
         cur[from.first][from.second] = 0;
-        if (non0s[0] == from) {
-            if (isolates(non0s[1].first, non0s[1].second) != non0s.size() - 1) {
-                cur[from.first][from.second] = beforeFrom;
-                continue;
-            }
+        if (isolates(from)) {
+            cur[from.first][from.second] = beforeFrom;
+            continue;
         }
-        else {
-            if (isolates(non0s[0].first, non0s[0].second) != non0s.size() - 1) {
-                cur[from.first][from.second] = beforeFrom;
-                continue;
-            }
-        }
-
-        //if ((non0s[0] == from && isolates(non0s[1].first, non0s[1].second) != non0s.size() - 1) || (non0s[0] != from && isolates(non0s[0].first, non0s[0].second) != non0s.size() - 1)) {
-        //    cur[from.first][from.second] = beforeFrom;
-        //    continue;
-        //}
-
         for (int i = 0; i < non0s.size(); ++i) {
             if (from == non0s[i]) {
                 non0s[i] = non0s.back();
@@ -239,9 +243,7 @@ bool solveState::solve() {
             int beforeTo = cur[to.first][to.second];
             for (int times = -1; times < 2; times += 2) {
                 cur[to.first][to.second] = abs(beforeTo + beforeFrom * times);
-                if ((!cur[to.first][to.second] && (non0s.size() == 2 ||
-                    checkIfRemovingCardinallyIsolates(to))) ||
-                    !tryInsert())
+                if ((!cur[to.first][to.second] && (non0s.size() == 2 || isolates(to))) || !tryInsert())
                     continue;
                 if (!cur[to.first][to.second]) {//remove matching entry from non0s
                     for (int i = 0; i < non0s.size(); ++i) {
@@ -276,37 +278,6 @@ bool solveState::solve() {
         cur[from.first][from.second] = 0;
 
         for (int dir = 0; dir < 4; ++dir) {
-            pair<int, int> to = {
-                from.first + beforeFrom * dirMults[dir],
-                from.second + beforeFrom * dirMults[3 - dir]
-            };
-            if (to.first < 0 || to.first >= cur.size() || to.second < 0 || to.second >= cur[0].size() || !cur[to.first][to.second])
-                continue;
-
-            int beforeTo = cur[to.first][to.second];
-            for (int times = -1; times < 2; times += 2) {
-                cur[to.first][to.second] = abs(beforeTo + beforeFrom * times);
-                if ((!cur[to.first][to.second] && (non0s.size() == 2 ||
-                    checkIfRemovingCardinallyIsolates(to))) ||
-                    !tryInsert())
-                    continue;
-                if (!cur[to.first][to.second]) {//remove matching entry from non0s
-                    for (int i = 0; i < non0s.size(); ++i) {
-                        if (non0s[i].first == to.first && non0s[i].second == to.second) {
-                            non0s[i] = non0s.back();
-                            non0s.pop_back();
-                            break;
-                        }
-                    }
-                }
-                moves.push_back({ from.first, from.second, dir, times });
-                if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue()) || solve())
-                    return true;
-                moves.pop_back();
-                if (!cur[to.first][to.second])
-                    non0s.emplace_back(to.first, to.second);
-            }
-            cur[to.first][to.second] = beforeTo;
         }
         non0s.emplace_back(from.first, from.second);
         cur[from.first][from.second] = beforeFrom;
