@@ -231,6 +231,7 @@ bool solveState::solve() {
         }
         for (int i = 0; i < non0s.size(); ++i) {
             if (from == non0s[i]) {
+                cout << "from: " << from.first << ',' << from.second << ", non0s[i]: " << non0s[i].first << ',' << non0s[i].second << '\n';
                 non0s[i] = non0s.back();
                 non0s.pop_back();
                 break;
@@ -238,6 +239,7 @@ bool solveState::solve() {
             cout << "fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuck" << endl;
             system("pause");
         }
+        cout << endl;
         cout << "a " << non0s.size() << endl;
         for (int dir = 0; dir < 4; ++dir) {
             pair<int, int> to = {
