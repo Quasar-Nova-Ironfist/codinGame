@@ -211,6 +211,17 @@ bool solveState::isolates(pair<int, int> posRemoved) {
 bool solveState::solve() {
     vector<pair<int, int>> non0sCopy = non0s;
     for (int qweplo = 0; qweplo < non0sCopy.size(); ++qweplo) {
+        
+        for (int i = 0; i < non0sCopy.size(); ++i) {
+            for (int j = 0; j < non0s.size(); ++j) {
+               if(non0sCopy[i] == non0s[j])
+				   goto blarg;
+            }
+            cout << "fuck" << endl;
+            system("pause");
+        blarg:;
+        }
+        
         pair<int, int> from = non0sCopy[qweplo];
         int beforeFrom = cur[from.first][from.second];
         cur[from.first][from.second] = 0;
