@@ -224,8 +224,10 @@ bool solveState::solve() {
                 non0s.pop_back();
                 break;
             }
+            cout << "fuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuck" << endl;
+            system("pause");
         }
-        
+        cout << "a " << non0s.size() << endl;
         for (int dir = 0; dir < 4; ++dir) {
             pair<int, int> to = {
                 from.first + beforeFrom * dirMults[dir],
@@ -248,11 +250,12 @@ bool solveState::solve() {
                         }
                     }
                 }
+                cout << "b " << non0s.size() << endl;
                 moves.push_back({ from.first, from.second, dir, times });
                 if (stopSearch.load(std::memory_order_relaxed) || (!non0s.size() && outputToFileAndReturnTrue()) || solve())
                     return true;
                 moves.pop_back();
-                if (!cur[to.first][to.second])
+                if (!cur[to.first][to.second])//reinsert matching entry into non0s
                     non0s.emplace_back(to.first, to.second);
             }
             cur[to.first][to.second] = beforeTo;
