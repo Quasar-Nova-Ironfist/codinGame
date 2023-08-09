@@ -2,9 +2,10 @@
 #include <vector>
 #include <array>
 struct solveState {
-	std::vector<std::vector<int>> cur;
+	std::vector<std::vector<std::array<int, 5>>> cur;
 	std::vector<std::array<int, 4>> moves;//x, y, dir, times
-	std::vector<std::pair<int, int>> non0s;
+	std::vector<std::pair<int, int>> tiles;
+	int non0s;
 	bool solve();
 	bool isolates(std::pair<int, int> pos);
 	std::vector<std::vector<char>> _isolationCheckVisisted;//avoid allocating all this space every time it checks if removing a tile isolates others
