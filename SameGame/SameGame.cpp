@@ -3,9 +3,36 @@
 #include <algorithm>
 #include <vector>
 #include <chrono>//TODO
-#include <unordered_set>
-using std::cout; using std::endl; using std::pair; using std::vector; using std::cerr; using std::array;
+#include <map>
 
+using std::cout; using std::endl; using std::pair; using std::vector; using std::cerr; using std::array;
+using sq15 = array<array<int, 15>, 15>;
+
+/*#include <unordered_map>
+template<> struct std::hash<sq15> {
+    size_t operator()(const sq15& grid) const {
+        size_t res = 0;
+        for (int y = 0; y < 15; ++y) {
+            for (int x = 0; x < 15; ++x) {
+                res = res * 31 + grid[x][y];
+            }
+        }
+        return res;
+    }
+};
+std::unordered_map<sq15, size_t> transTable;*/
+
+/*struct moveSet {
+    vector<pair<int, int>> moves;
+	size_t score;
+	bool operator < (const moveSet& other) const { return score < other.score; }
+	bool operator > (const moveSet& other) const { return score > other.score; }
+	bool operator == (const moveSet& other) const { return score == other.score; }
+	bool operator != (const moveSet& other) const { return score != other.score; }
+	bool operator <= (const moveSet& other) const { return score <= other.score; }
+	bool operator >= (const moveSet& other) const { return score >= other.score; }
+};*/
+std::map<sq15, size_t> transTable;
 class board {
     void setConnected(vector<pair<int, int>>& block, int x, int y, int color) {
         block.emplace_back(x, y);
@@ -20,9 +47,21 @@ class board {
             setConnected(block, x - 1, y, color);
     }
 public:
-    array<array<int, 15>, 15> grid{};
+    sq15 grid{};
     int pastMaxX = 15, pastMaxY = 15;
     size_t score = 0;
+    bool tryEmplace() {
+        auto itr = transTable.find(grid);
+		if (itr == transTable.end()) {
+			transTable.emplace(grid, score);
+			return true;
+		}
+		if (itr->second < score) {
+			itr->second = score;
+			return true;
+		}
+		return false;
+    }
     bool operator == (const board& other) const { return score == other.score && grid == other.grid; }
     vector<vector<pair<int, int>>> getConnectedList() {
         vector<vector<pair<int, int>>> res;
@@ -121,18 +160,6 @@ std::ostream& operator<<(std::ostream& os, const board& b) {
     #endif // _DEBUG
 	return os;
 }
-template<> struct std::hash<board> {
-    size_t operator()(const board& b) const {
-        size_t res = b.score;
-        for (int y = 0; y < 15; ++y) {
-            for (int x = 0; x < 15; ++x) {
-                res = res * 31 + b.grid[x][y];
-            }
-        }
-        return res;
-    }
-};
-std::unordered_set<board> transTable;
 namespace best {
     vector<pair<int, int>> moves;
     board b;
@@ -140,17 +167,17 @@ namespace best {
 vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
-
 void solve(board& b) {//todo move part to seperate makeMove(vector<pair<int, int>>& mv) function; move into board struct alongside score?
     auto posMoves = b.getConnectedList();//sort by size?
     if (posMoves.empty() && b.score > best::b.score) {
         best::moves = moves;
         best::b = b;
+        cerr << "new best score: " << best::b.score << endl;
     }
     for (auto& move : posMoves) {
     	board bCopy = b;
 		bCopy.makeMove(move);
-        if (!transTable.emplace(b).second) continue;//if already seen this state, skip further processing
+        if (!bCopy.tryEmplace()) continue;
         moves.emplace_back(move[0].first, move[0].second);
         solve(bCopy);
         moves.pop_back();
@@ -170,7 +197,7 @@ int main() {
     cerr << "best score: " << best::b.score << endl;
     cout << best::moves[0].first << " " << best::moves[0].second << endl;
     for (int i = 1; i < best::moves.size(); ++i) {//delay to max time, 2nd thread for solving in meantime?; longjmp instead of thread? std::move(moves) to temp var, replace moves with empty vec?
-        for (int y = 15; y--; y) {
+        for (int y = 15; y--;) {
             for (int x = 0; x < 15; ++x) {
                 #ifndef _DEBUG
                     std::cin >> b.score; std::cin.ignore();
