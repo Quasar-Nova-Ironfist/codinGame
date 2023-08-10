@@ -45,7 +45,6 @@ public:
     sq15 grid{};
     int pastMaxX = 15, pastMaxY = 15;
     size_t score = 0;
-    bool operator == (const board& other) const { return score == other.score && grid == other.grid; }
     vector<vector<pair<int, int>>> getConnectedList() {
         vector<vector<pair<int, int>>> res;
         for (int y = 0; y < pastMaxY; ++y) {
