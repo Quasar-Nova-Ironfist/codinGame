@@ -22,16 +22,11 @@ template<> struct std::hash<sq15> {
 };
 std::unordered_map<sq15, size_t> transTable;*/
 
-/*struct moveSet {
-    vector<pair<int, int>> moves;
-	size_t score;
-	bool operator < (const moveSet& other) const { return score < other.score; }
-	bool operator > (const moveSet& other) const { return score > other.score; }
-	bool operator == (const moveSet& other) const { return score == other.score; }
-	bool operator != (const moveSet& other) const { return score != other.score; }
-	bool operator <= (const moveSet& other) const { return score <= other.score; }
-	bool operator >= (const moveSet& other) const { return score >= other.score; }
-};*/
+struct lookOnward {
+    int depth = 0;
+    size_t score;//score by this point
+    pair<size_t, vector<pair<int, int>>>* endpoint;//max score achieved so far down this branch and moves to get there
+};
 std::map<sq15, size_t> transTable;
 class board {
     void setConnected(vector<pair<int, int>>& block, int x, int y, int color) {
@@ -50,18 +45,6 @@ public:
     sq15 grid{};
     int pastMaxX = 15, pastMaxY = 15;
     size_t score = 0;
-    bool tryEmplace() {
-        auto itr = transTable.find(grid);
-		if (itr == transTable.end()) {
-			transTable.emplace(grid, score);
-			return true;
-		}
-		if (itr->second < score) {
-			itr->second = score;
-			return true;
-		}
-		return false;
-    }
     bool operator == (const board& other) const { return score == other.score && grid == other.grid; }
     vector<vector<pair<int, int>>> getConnectedList() {
         vector<vector<pair<int, int>>> res;
@@ -167,7 +150,7 @@ namespace best {
 vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
-void solve(board& b) {//todo move part to seperate makeMove(vector<pair<int, int>>& mv) function; move into board struct alongside score?
+void solve(board& b) {
     auto posMoves = b.getConnectedList();//sort by size?
     if (posMoves.empty() && b.score > best::b.score) {
         best::moves = moves;
@@ -177,7 +160,14 @@ void solve(board& b) {//todo move part to seperate makeMove(vector<pair<int, int
     for (auto& move : posMoves) {
     	board bCopy = b;
 		bCopy.makeMove(move);
-        if (!bCopy.tryEmplace()) continue;
+        auto itr = transTable.find(bCopy.grid);
+        if (itr == transTable.end())
+        	transTable.emplace(bCopy.grid, bCopy.score);
+        else {
+        	if (itr->second >= bCopy.score)
+				continue;
+			itr->second = bCopy.score;
+        }
         moves.emplace_back(move[0].first, move[0].second);
         solve(bCopy);
         moves.pop_back();
