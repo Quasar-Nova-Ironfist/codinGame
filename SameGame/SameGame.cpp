@@ -1,33 +1,16 @@
+//OH BOY I SURE DO LOVE NEEDING TO HAVE EVERYTHING BE IN ONE FILE THAT SURE IS GREAT
 #include <iostream>
 #include <array>
 #include <algorithm>
 #include <vector>
 #include <chrono>//TODO
-#include <map>
+#include <map>//replace with unordered
 
 using std::cout; using std::endl; using std::pair; using std::vector; using std::cerr; using std::array;
 using sq15 = array<array<int, 15>, 15>;
-
-/*#include <unordered_map>
-template<> struct std::hash<sq15> {
-    size_t operator()(const sq15& grid) const {
-        size_t res = 0;
-        for (int y = 0; y < 15; ++y) {
-            for (int x = 0; x < 15; ++x) {
-                res = res * 31 + grid[x][y];
-            }
-        }
-        return res;
-    }
-};
-std::unordered_map<sq15, size_t> transTable;*/
-
-struct lookOnward {
-    int depth = 0;
-    size_t score;//score by this point
-    pair<size_t, vector<pair<int, int>>>* endpoint;//max score achieved so far down this branch and moves to get there
-};
-std::map<sq15, size_t> transTable;
+#ifdef _DEBUG
+    int solveCount = 0;
+#endif // _DEBUG
 class board {
     void setConnected(vector<pair<int, int>>& block, int x, int y, int color) {
         block.emplace_back(x, y);
@@ -149,28 +132,47 @@ namespace best {
 vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
-void solve(board& b) {
-    auto posMoves = b.getConnectedList();//sort by size?
-    if (posMoves.empty() && b.score > best::b.score) {
-        best::moves = moves;
-        best::b = b;
-        cerr << "new best score: " << best::b.score << endl;
+template<> struct std::hash<sq15>{//TODO to convert map to unordered_map
+    size_t operator()(const sq15& x) const{
+        return 0;
     }
+};
+std::map<sq15, pair<size_t, size_t>> transTable;
+int solve(board& b) {
+    #ifdef _DEBUG
+        ++solveCount;
+    #endif // _DEBUG
+    auto posMoves = b.getConnectedList();
+    if (posMoves.empty()){// || !depth) {
+        if (b.score > best::b.score) {
+            best::moves = moves;
+            best::b = b;
+            cerr << "new best score: " << best::b.score << endl;
+        }
+        return b.score;
+    }
+    int bestBranchScore = 0;
     for (auto& move : posMoves) {
     	board bCopy = b;
 		bCopy.makeMove(move);
         auto itr = transTable.find(bCopy.grid);
-        if (itr == transTable.end())
-        	transTable.emplace(bCopy.grid, bCopy.score);
+        if (itr == transTable.end()) {
+            itr = transTable.emplace(bCopy.grid, std::move(std::make_pair(bCopy.score, 0))).first;
+        }
         else {
-        	if (itr->second >= bCopy.score)
-				continue;
-			itr->second = bCopy.score;
+            size_t posNewScore = itr->second.second - itr->second.first + bCopy.score;
+            if (posNewScore <= best::b.score)
+                continue;
+            itr->second.first = bCopy.score;//updated expected score by this grid state
+            itr->second.second = posNewScore;//update max score by this grid state
         }
         moves.emplace_back(move[0].first, move[0].second);
-        solve(bCopy);
+        itr->second.second = solve(bCopy);
+        if (itr->second.second > bestBranchScore)
+			bestBranchScore = itr->second.second;
         moves.pop_back();
     }
+    return bestBranchScore;
 }
 int main() {
     board b{};
@@ -184,6 +186,9 @@ int main() {
     solve(b);
     transTable.clear();
     cerr << "best score: " << best::b.score << endl;
+    #ifdef _DEBUG
+        cerr << "solveCount: " << solveCount << endl;
+    #endif // _DEBUG
     cout << best::moves[0].first << " " << best::moves[0].second << endl;
     for (int i = 1; i < best::moves.size(); ++i) {//delay to max time, 2nd thread for solving in meantime?; longjmp instead of thread? std::move(moves) to temp var, replace moves with empty vec?
         for (int y = 15; y--;) {
