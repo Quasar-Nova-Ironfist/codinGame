@@ -165,7 +165,7 @@ int solve(board& b) {
             if (posNewScore <= best::b.score)
                 continue;
             itr->second.first = bCopy.score;//updated expected score by this grid state
-            itr->second.second = posNewScore;//update max score by this grid state
+            //itr->second.second = posNewScore;//update max score by this grid state, prob unneeded w/ itr->second.second = solve(bCopy);
         }
         moves.emplace_back(move[0].first, move[0].second);
         itr->second.second = solve(bCopy);
