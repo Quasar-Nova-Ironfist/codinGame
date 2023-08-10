@@ -106,6 +106,7 @@ public:
 		pastMaxX = other.pastMaxX;
 		pastMaxY = other.pastMaxY;
     }
+    bool operator==(const board& other) const { return grid == other.grid; }
 };
 std::ostream& operator<<(std::ostream& os, const board& b) {
     int clrs[] = {0, 31, 32, 34, 33, 35};
