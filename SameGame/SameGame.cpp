@@ -106,7 +106,6 @@ public:
 		pastMaxX = other.pastMaxX;
 		pastMaxY = other.pastMaxY;
     }
-    bool operator==(const board& other) const { return grid == other.grid; }
 };
 std::ostream& operator<<(std::ostream& os, const board& b) {
     int clrs[] = {0, 31, 32, 34, 33, 35};
@@ -134,22 +133,28 @@ vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
 template<> struct std::hash<sq15>{//TODO to convert map to unordered_map
-    size_t operator()(const sq15& x) const{
-        return 0;
+    std::size_t operator()(const sq15& grid) const {
+        std::size_t res = 0;
+        for (auto row : grid)
+            for (int e : row)
+               res ^= std::hash<int>{}(e)+0x9e3779b9 + (res << 6) + (res >> 2);
+        return res;
     }
 };
-std::map<sq15, pair<size_t, size_t>> transTable;
+#include <unordered_map>
+//std::map<sq15, pair<size_t, size_t>> transTable;
+std::unordered_map<sq15, pair<size_t, size_t>> transTable;
 int solve(board& b) {
     #ifdef _DEBUG
         ++solveCount;
     #endif // _DEBUG
     auto posMoves = b.getConnectedList();
+    if (b.score > best::b.score) {
+        best::moves = moves;
+        best::b = b;
+        cerr << "new best score: " << best::b.score << endl;
+    }
     if (posMoves.empty()){// || !depth) {
-        if (b.score > best::b.score) {
-            best::moves = moves;
-            best::b = b;
-            cerr << "new best score: " << best::b.score << endl;
-        }
         return b.score;
     }
     int bestBranchScore = 0;
