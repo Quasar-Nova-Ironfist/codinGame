@@ -12,11 +12,6 @@ using sq15 = array<array<int, 15>, 15>;
 int solveCount = 0;
 #endif // _DEBUG
 
-struct treeNode {
-    size_t score = 0, maxScore = 0;
-    vector<pair<int, int>> moves;
-    vector<treeNode*> children;
-};
 class board {
     void setConnected(vector<pair<int, int>>& block, int x, int y, int color) {
         block.emplace_back(x, y);
