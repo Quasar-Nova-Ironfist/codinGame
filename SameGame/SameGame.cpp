@@ -99,6 +99,12 @@ public:
         }
         score += (move.size() - 2) * (move.size() - 2) + (grid[0][0] ? 0 : 1000);
     }
+    void makeMove(int x, int y) {
+        vector<pair<int, int>> move;
+		setConnected(move, x, y, grid[x][y]);
+		if (move.size() == 1) return;
+		makeMove(move);
+    }
     board() {}
     board(board& other) {
         grid = other.grid;
@@ -130,6 +136,18 @@ namespace best {
     vector<pair<int, int>> moves;
     board b;
 }
+#include <set>
+struct treeNode {
+    static std::set<treeNode*> nodesToDelete;
+    size_t score, maxScore;
+    vector<pair<int, int>> moves;
+    vector<treeNode*> children;
+    ~treeNode() {
+        for (auto c : children) {
+            nodesToDelete.insert(c);
+        }
+    }
+};
 vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
@@ -161,8 +179,9 @@ int solve(board& b) {
             itr = transTable.emplace(bCopy.grid, std::move(std::make_pair(bCopy.score, 0))).first;
         }
         else {
-            size_t posNewScore = itr->second.second - itr->second.first + bCopy.score;
-            if (posNewScore <= best::b.score)
+            //size_t posNewScore = itr->second.second - itr->second.first + bCopy.score;
+            //if (posNewScore <= best::b.score)
+            if (itr->second.second - itr->second.first + bCopy.score <= best::b.score)
                 continue;
             itr->second.first = bCopy.score;//updated expected score by this grid state
             //itr->second.second = posNewScore;//update max score by this grid state, prob unneeded w/ itr->second.second = solve(bCopy);
