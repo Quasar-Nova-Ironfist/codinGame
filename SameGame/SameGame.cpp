@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <vector>
 #include <chrono>//TODO
-#include <map>//replace with unordered
+#include <unordered_map>
 
 using std::cout; using std::endl; using std::pair; using std::vector; using std::cerr; using std::array;
 using sq15 = array<array<int, 15>, 15>;
@@ -12,19 +12,6 @@ using sq15 = array<array<int, 15>, 15>;
     int solveCount = 0;
 #endif // _DEBUG
 
-#include <set>
-struct treeNode {
-    size_t score, maxScore;
-    vector<pair<int, int>> moves;
-    vector<treeNode*> children;
-    static std::set<treeNode*> nodesToDelete;
-    ~treeNode() {
-        for (auto c : children) {
-            nodesToDelete.insert(c);
-        }
-    }
-};
-std::set<treeNode*> treeNode::nodesToDelete{};
 class board {
     void setConnected(vector<pair<int, int>>& block, int x, int y, int color) {
         block.emplace_back(x, y);
@@ -113,10 +100,9 @@ public:
         }
         score += (move.size() - 2) * (move.size() - 2) + (grid[0][0] ? 0 : 1000);
     }
-    void makeMove(int x, int y) {
+    void makeMove(pair<int, int>& pos) {
         vector<pair<int, int>> move;
-		setConnected(move, x, y, grid[x][y]);
-		if (move.size() == 1) return;
+		setConnected(move, pos.first, pos.second, grid[pos.first][pos.second]);
 		makeMove(move);
     }
     board() {}
@@ -146,32 +132,33 @@ std::ostream& operator<<(std::ostream& os, const board& b) {
     #endif // _DEBUG
 	return os;
 }
-namespace best {
-    vector<pair<int, int>> moves;
-    board b;
-}
+size_t bestScore = 0;
+vector<pair<int, int>> bestMoves;
 vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
-template<> struct std::hash<sq15>{//TODO to convert map to unordered_map
-    size_t operator()(const sq15& x) const{
-        return 0;
+template<> struct std::hash<sq15> {//TODO to convert map to unordered_map
+    size_t operator()(const sq15& grid) const {
+        size_t res = 0;
+        for (auto row : grid)
+            for (int e : row)
+                res ^= std::hash<int>{}(e)+0x9e3779b9 + (res << 6) + (res >> 2);
+        return res;
     }
 };
-std::map<sq15, pair<size_t, size_t>> transTable;
+std::unordered_map<sq15, pair<size_t, size_t>> transTable;
 int solve(board& b) {
     #ifdef _DEBUG
         ++solveCount;
     #endif // _DEBUG
     auto posMoves = b.getConnectedList();
-    if (posMoves.empty()){// || !depth) {
-        if (b.score > best::b.score) {
-            best::moves = moves;
-            best::b = b;
-            cerr << "new best score: " << best::b.score << endl;
-        }
-        return b.score;
+    if (b.score > bestScore) {
+        bestMoves = moves;
+        bestScore = b.score;
+        cerr << "new best score: " << bestScore << endl;//RIF
     }
+    if (posMoves.empty())// || !depth)
+        return b.score;
     int bestBranchScore = 0;
     for (auto& move : posMoves) {
     	board bCopy = b;
@@ -181,12 +168,9 @@ int solve(board& b) {
             itr = transTable.emplace(bCopy.grid, std::move(std::make_pair(bCopy.score, 0))).first;
         }
         else {
-            //size_t posNewScore = itr->second.second - itr->second.first + bCopy.score;
-            //if (posNewScore <= best::b.score)
-            if (itr->second.second - itr->second.first + bCopy.score <= best::b.score)
+            if (itr->second.second - itr->second.first + bCopy.score <= bestScore)
                 continue;
             itr->second.first = bCopy.score;//updated expected score by this grid state
-            //itr->second.second = posNewScore;//update max score by this grid state, prob unneeded w/ itr->second.second = solve(bCopy);
         }
         moves.emplace_back(move[0].first, move[0].second);
         itr->second.second = solve(bCopy);
@@ -197,7 +181,6 @@ int solve(board& b) {
     return bestBranchScore;
 }
 int main() {
-    treeNode* treeRoot = new treeNode;
     board b{};
     for (int y = 15; y--;) {
         for (int x = 0; x < 15; ++x) {
@@ -206,13 +189,16 @@ int main() {
         }
     }
     cerr << '\n' << b << endl;
+    board beforeSolve = b;
     solve(b);
-    cerr << "best score: " << best::b.score << endl;
+    cerr << "best score: " << bestScore << endl;
     #ifdef _DEBUG
         cerr << "solveCount: " << solveCount << endl;
     #endif // _DEBUG
-    cout << best::moves[0].first << " " << best::moves[0].second << endl;
-    for (int i = 1; i < best::moves.size(); ++i) {//delay to max time, 2nd thread for solving in meantime?; longjmp instead of thread? std::move(moves) to temp var, replace moves with empty vec?
+    cout << bestMoves[0].first << " " << bestMoves[0].second << endl;
+    b = std::move(beforeSolve);
+    b.makeMove(bestMoves[0]);
+    for (int i = 1; i < bestMoves.size(); ++i) {//delay to max time, 2nd thread for solving in meantime?; longjmp instead of thread? std::move(moves) to temp var, replace moves with empty vec?
         for (int y = 15; y--;) {
             for (int x = 0; x < 15; ++x) {
                 #ifndef _DEBUG
@@ -220,7 +206,8 @@ int main() {
                 #endif // !_NDEBUG
             }
         }
-        cout << best::moves[i].first << " " << best::moves[i].second << endl;
+        cout << bestMoves[i].first << " " << bestMoves[i].second << endl;
+        b.makeMove(bestMoves[i]);
     }
 
     return 0;
@@ -234,16 +221,11 @@ int main() {
         }
         startTime = std::chrono::system_clock::now();
         moves.clear();
-        b.score = best::b.score;
-        b.pastMaxX = best::b.pastMaxX;
-        b.pastMaxY = best::b.pastMaxY;
-        b.grid = std::move(best::b.grid);//laid out like this to avoid a grid copy, as opposed to cur::b = best::b;
         transTable.clear();
-        delete treeRoot;
-        for (auto p : treeNode::nodesToDelete)
-            delete p;
-        treeRoot = new treeNode;
+        beforeSolve = b;
         solve(b);
-        cout << best::moves[0].first << " " << best::moves[0].second << endl;
+        b = std::move(beforeSolve);
+        cout << bestMoves[0].first << " " << bestMoves[0].second << endl;
+        b.makeMove(bestMoves[0]);
     }
 }
