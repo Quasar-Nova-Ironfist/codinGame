@@ -11,6 +11,20 @@ using sq15 = array<array<int, 15>, 15>;
 #ifdef _DEBUG
     int solveCount = 0;
 #endif // _DEBUG
+
+#include <set>
+struct treeNode {
+    size_t score, maxScore;
+    vector<pair<int, int>> moves;
+    vector<treeNode*> children;
+    static std::set<treeNode*> nodesToDelete;
+    ~treeNode() {
+        for (auto c : children) {
+            nodesToDelete.insert(c);
+        }
+    }
+};
+std::set<treeNode*> treeNode::nodesToDelete{};
 class board {
     void setConnected(vector<pair<int, int>>& block, int x, int y, int color) {
         block.emplace_back(x, y);
@@ -136,18 +150,6 @@ namespace best {
     vector<pair<int, int>> moves;
     board b;
 }
-#include <set>
-struct treeNode {
-    static std::set<treeNode*> nodesToDelete;
-    size_t score, maxScore;
-    vector<pair<int, int>> moves;
-    vector<treeNode*> children;
-    ~treeNode() {
-        for (auto c : children) {
-            nodesToDelete.insert(c);
-        }
-    }
-};
 vector<pair<int, int>> moves;
 auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
@@ -195,6 +197,7 @@ int solve(board& b) {
     return bestBranchScore;
 }
 int main() {
+    treeNode* treeRoot = new treeNode;
     board b{};
     for (int y = 15; y--;) {
         for (int x = 0; x < 15; ++x) {
@@ -204,7 +207,6 @@ int main() {
     }
     cerr << '\n' << b << endl;
     solve(b);
-    transTable.clear();
     cerr << "best score: " << best::b.score << endl;
     #ifdef _DEBUG
         cerr << "solveCount: " << solveCount << endl;
@@ -236,8 +238,12 @@ int main() {
         b.pastMaxX = best::b.pastMaxX;
         b.pastMaxY = best::b.pastMaxY;
         b.grid = std::move(best::b.grid);//laid out like this to avoid a grid copy, as opposed to cur::b = best::b;
-        solve(b);
         transTable.clear();
+        delete treeRoot;
+        for (auto p : treeNode::nodesToDelete)
+            delete p;
+        treeRoot = new treeNode;
+        solve(b);
         cout << best::moves[0].first << " " << best::moves[0].second << endl;
     }
 }
