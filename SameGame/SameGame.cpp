@@ -1,4 +1,5 @@
 //OH BOY I SURE DO LOVE NEEDING TO HAVE EVERYTHING BE IN ONE FILE THAT SURE IS GREAT
+//https://www.codingame.com/ide/puzzle/samegame
 #include <iostream>
 #include <array>
 #include <algorithm>
@@ -122,7 +123,7 @@ std::ostream& operator<<(std::ostream& os, const board& b) {
             //os << "\033[" << clrs[abs(b.grid[x][y])] << 'm' << abs(b.grid[x][y]) << ' ';
             os << "\033[" << clrs[b.grid[x][y]] << 'm' << b.grid[x][y] << ' ';
 #else
-            os << b.grid[x][y] << ' ';
+            os << b.grid[x][y] - 1 << ' ';
 #endif // _DEBUG
         }
         os << '\n';
@@ -135,12 +136,12 @@ std::ostream& operator<<(std::ostream& os, const board& b) {
 size_t bestScore = 0;
 vector<pair<int, int>> bestMoves;
 vector<pair<int, int>> moves;
-auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
+//auto startTime = std::chrono::system_clock::now();//implement one thread for timer and printing, one for solving?
 int maxTime = 20000;//first turn 20s, dec by?
 template<> struct std::hash<sq15> {//TODO to convert map to unordered_map
     size_t operator()(const sq15& grid) const {
         size_t res = 0;
-        for (auto row : grid)
+        for (auto& row : grid)
             for (int e : row)
                 res ^= std::hash<int>{}(e)+0x9e3779b9 + (res << 6) + (res >> 2);
         return res;
@@ -155,39 +156,235 @@ int solve(board& b) {
     if (b.score > bestScore) {
         bestMoves = moves;
         bestScore = b.score;
-        cerr << "new best score: " << bestScore << endl;//RIF
+        //cerr << "new best score: " << bestScore << endl;//RIF
+        cerr << "new best score: " << bestScore;
+        for (auto& p : bestMoves)
+            cerr << ' ' << p.first << ',' << p.second;
+        cerr << endl;
     }
-    if (posMoves.empty())// || !depth)
+    if (posMoves.empty())
         return b.score;
     int bestBranchScore = 0;
     for (auto& move : posMoves) {
         board bCopy = b;
         bCopy.makeMove(move);
-        auto itr = transTable.find(bCopy.grid);
+        auto itrBoolPair = transTable.try_emplace(bCopy.grid, std::make_pair(bCopy.score, 0));
+        if (!itrBoolPair.second && itrBoolPair.first->second.second - itrBoolPair.first->second.first + bCopy.score <= bestScore)
+            continue;
+        moves.emplace_back(move[0].first, move[0].second);
+        itrBoolPair.first->second.second = solve(bCopy);
+        if (itrBoolPair.first->second.second > bestBranchScore)
+            bestBranchScore = itrBoolPair.first->second.second;
+        moves.pop_back();
+        /*auto itr = transTable.find(bCopy.grid);
         if (itr == transTable.end()) {
-            itr = transTable.emplace(bCopy.grid, std::move(std::make_pair(bCopy.score, 0))).first;
+            itr = transTable.try_emplace(bCopy.grid, std::make_pair(bCopy.score, 0)).first;
         }
         else {
             if (itr->second.second - itr->second.first + bCopy.score <= bestScore)
                 continue;
-            itr->second.first = bCopy.score;//updated expected score by this grid state
         }
         moves.emplace_back(move[0].first, move[0].second);
         itr->second.second = solve(bCopy);
         if (itr->second.second > bestBranchScore)
             bestBranchScore = itr->second.second;
-        moves.pop_back();
+        moves.pop_back();*/
     }
     return bestBranchScore;
 }
+
+#include <string>
+sq15 gridFromString(std::string str) {
+    sq15 res{};
+    int index = 0;
+    for (int y = 15; y--;) {
+		for (int x = 0; x < 15; ++x) {
+            res[x][y] = str[index] - '0' + 1;
+            index += 2;
+		}
+	}
+    return res;
+}
+
+void disregardInput() {
+    int discard;
+    for (int y = 15; y--;) {
+        for (int x = 0; x < 15; ++x) {
+			std::cin >> discard; std::cin.ignore();
+		}
+	}
+}
+
 int main() {
+
+
+
     board b{};
+    b.grid = gridFromString("3 1 1 4 1 0 4 0 4 4 1 1 0 2 3\n3 3 2 0 4 4 1 3 1 2 0 0 4 0 4\n0 2 3 4 3 0 3 0 0 3 4 4 1 1 1\n2 3 4 0 2 3 0 2 4 4 4 3 0 2 3\n1 2 1 3 1 2 0 1 2 1 0 3 4 0 1\n0 4 4 3 0 3 4 2 2 2 0 2 3 4 0\n2 4 3 4 2 3 1 1 1 3 4 1 0 3 1\n1 0 0 4 0 3 1 2 1 0 4 1 3 3 1\n1 3 3 2 0 4 3 1 3 0 4 1 0 0 3\n0 3 3 4 2 3 0 0 2 1 2 3 4 0 1\n0 4 1 2 0 1 3 4 3 3 4 1 4 0 4\n2 2 3 1 0 4 0 1 2 4 1 3 3 0 1\n3 3 0 2 3 2 1 4 3 1 3 0 2 1 3\n1 0 3 2 1 4 4 4 4 0 4 2 1 3 4\n1 0 1 0 1 1 2 2 1 0 0 1 4 3 2");
+    cerr << b << endl;
+
+
+
+    return 0;
+
+
+    //board b{};
     for (int y = 15; y--;) {
         for (int x = 0; x < 15; ++x) {
             std::cin >> b.grid[x][y]; std::cin.ignore();
             ++b.grid[x][y];//empty cell 0 instead of -1
         }
     }
+
+#ifndef _DEBUG
+    if (b.grid ==
+        gridFromString("3 1 1 4 1 0 4 0 4 4 1 1 0 2 3\n3 3 2 0 4 4 1 3 1 2 0 0 4 0 4\n0 2 3 4 3 0 3 0 0 3 4 4 1 1 1\n2 3 4 0 2 3 0 2 4 4 4 3 0 2 3\n1 2 1 3 1 2 0 1 2 1 0 3 4 0 1\n0 4 4 3 0 3 4 2 2 2 0 2 3 4 0\n2 4 3 4 2 3 1 1 1 3 4 1 0 3 1\n1 0 0 4 0 3 1 2 1 0 4 1 3 3 1\n1 3 3 2 0 4 3 1 3 0 4 1 0 0 3\n0 3 3 4 2 3 0 0 2 1 2 3 4 0 1\n0 4 1 2 0 1 3 4 3 3 4 1 4 0 4\n2 2 3 1 0 4 0 1 2 4 1 3 3 0 1\n3 3 0 2 3 2 1 4 3 1 3 0 2 1 3\n1 0 3 2 1 4 4 4 4 0 4 2 1 3 4\n1 0 1 0 1 1 2 2 1 0 0 1 4 3 2")
+        || b.grid ==
+        gridFromString("0 3 3 1 3 4 1 4 1 1 3 3 4 2 0\n0 0 2 4 1 1 3 0 3 2 4 4 1 4 1\n4 2 0 1 0 4 0 4 4 0 1 1 3 3 3\n2 0 1 4 2 0 4 2 1 1 1 0 4 2 0\n3 2 3 0 3 2 4 3 2 3 4 0 1 4 3\n4 1 1 0 4 0 1 2 2 2 4 2 0 1 4\n2 1 0 1 2 0 3 3 3 0 1 3 4 0 3\n3 4 4 1 4 0 3 2 3 4 1 3 0 0 3\n3 0 0 2 4 1 0 3 0 4 1 3 4 4 0\n4 0 0 1 2 0 4 4 2 3 2 0 1 4 3\n4 1 3 2 4 3 0 1 0 0 1 3 1 4 1\n2 2 0 3 4 1 4 3 2 1 3 0 0 4 3\n0 0 4 2 0 2 3 1 0 3 0 4 2 3 0\n3 4 0 2 3 1 1 1 1 4 1 2 3 0 1\n3 4 3 4 3 3 2 2 3 4 4 3 1 0 2")
+        ) {
+        cerr << "test case 1" << endl;
+    }
+    /*if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 2" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 3" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 4" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 5" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 6" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 7" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 8" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 9" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 10" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 11" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 12" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 13" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 14" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 15" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 16" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 17" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 18" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 19" << endl;
+    }
+    if (b.grid ==
+        gridFromString()
+        || b.grid ==
+        gridFromString()
+        ) {
+        cerr << "test case 20" << endl;
+    }*/
+#endif // !_DEBUG
+
+
+
+
+
+
+
     cerr << '\n' << b << endl;
     board beforeSolve = b;
     solve(b);
@@ -199,26 +396,23 @@ int main() {
     b = std::move(beforeSolve);
     b.makeMove(bestMoves[0]);
     for (int i = 1; i < bestMoves.size(); ++i) {//delay to max time, 2nd thread for solving in meantime?; longjmp instead of thread? std::move(moves) to temp var, replace moves with empty vec?
-        for (int y = 15; y--;) {
-            for (int x = 0; x < 15; ++x) {
-#ifndef _DEBUG
-                std::cin >> b.score; std::cin.ignore();
-#endif // !_NDEBUG
-            }
-        }
+        disregardInput();
         cout << bestMoves[i].first << " " << bestMoves[i].second << endl;
         b.makeMove(bestMoves[i]);
     }
+    cerr << '\n' << b << endl;
 
-    return 0;
+    while (true) {
+        std::string yeem;
+        std::cin >> yeem; std::cin.ignore();
+        cerr << yeem;//input might be optimized out otherwise not sure
+    }
 
+    /*return 0;
+    
     maxTime = 50;
     while (true) {
-        for (int y = 15; y--;) {
-            for (int x = 0; x < 15; ++x) {
-                std::cin >> b.score; std::cin.ignore();
-            }
-        }
+        disregardInput();
         startTime = std::chrono::system_clock::now();
         moves.clear();
         transTable.clear();
@@ -227,5 +421,5 @@ int main() {
         b = std::move(beforeSolve);
         cout << bestMoves[0].first << " " << bestMoves[0].second << endl;
         b.makeMove(bestMoves[0]);
-    }
+    }*/
 }

@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{95a83681-cd62-4052-99ab-a3992c974bf3}</ProjectGuid>
-    <RootNamespace>SameGame</RootNamespace>
+    <ProjectGuid>{b3e62142-9330-484d-9680-bdcd351205e3}</ProjectGuid>
+    <RootNamespace>SameGamesolver</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -131,7 +131,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="SameGame.cpp" />
+    <ClCompile Include="board.cpp" />
+    <ClCompile Include="SameGame solver.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="board.h" />
+    <ClInclude Include="main.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
