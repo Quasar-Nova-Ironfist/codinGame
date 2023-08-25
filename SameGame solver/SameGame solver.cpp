@@ -5,14 +5,15 @@
 #define BS_THREAD_POOL_DISALBE_ERROR_FORWARDING
 #define BS_THREAD_POOL_DISABLE_PAUSE
 #define BS_THREAD_POOL_YEAH_I_KNOW_WHAT_IM_DOING
-#include <BS_thread_pool.hpp>
+#include <BS_thread_pool/minimal.hpp>
+#include <future>
 #include <Windows.h>
 
 using std::vector; using std::pair; using std::array; using std::cout; using std::endl; using std::string;
 using sq15 = array<array<int, 15>, 15>;
 
 phmap::parallel_flat_hash_map <sq15, node*, phmap::Hash<sq15>, phmap::EqualTo<sq15>, std::allocator<std::pair<const sq15, node*>>, 4, std::mutex> transTable;
-BS::thread_pool threadPool(11);
+BS::thread_pool_minimal threadPool(11);
 
 int main() {
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
@@ -128,7 +129,6 @@ int addScores(node* n) {
 	n->scoreAddLock.unlock();
 	return n->children[n->bestChildIndex].scoreGain;
 }
-
 /*int node::addScores() {//get rid of bestChildIndex, thread split at addScores to do away with the need for the atomic?
 	if (children.empty())
 		return 0;
