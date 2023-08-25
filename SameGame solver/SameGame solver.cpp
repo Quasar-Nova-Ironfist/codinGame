@@ -1,10 +1,11 @@
 #include "main.h"
 #include <fstream>
-#include <thread>
 #include <parallel_hashmap/phmap.h>
 #include <BS_thread_pool/minimal.hpp>
 #include <future>
 #include <Windows.h>
+
+#include <chrono>
 
 using std::vector; using std::pair; using std::array; using std::cout; using std::endl; using std::string;
 using sq15 = array<array<int, 15>, 15>;
@@ -27,12 +28,15 @@ int main() {
 		fout << '\n';
 	}
 	node root{};
+	auto start = std::chrono::steady_clock::now();
 	populateMap(b, &root);
+	auto end = std::chrono::steady_clock::now();
+	cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
 	threadPool.wait_for_tasks();
 	cout << "Table size: " << transTable.size() << '\n';
-	threadPool.tasks.push(std::bind(addScores, &root));
-	threadPool.task_available_cv.notify_one();
-	threadPool.wait_for_tasks();
+	//threadPool.tasks.push(std::bind(addScores, &root));
+	//threadPool.task_available_cv.notify_one();
+	//threadPool.wait_for_tasks();
 	/*cout << "Best score: " << addScores(&root) << '\n';//test if remains same
 	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
@@ -90,12 +94,15 @@ int main() {
 void populateMap(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.resize(posMoves.size());
+	threadPool.tasks_mutex.lock();
 	for (int i = 0; i < posMoves.size(); ++i) {
-		threadPool.tasks_mutex.lock();//test having this outside of loop
-		threadPool.tasks.push(std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i));
-		threadPool.tasks_mutex.unlock();
-		threadPool.task_available_cv.notify_one();
+		//threadPool.tasks.push(std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i));
+		populateMapWorker(b, n, std::move(posMoves[i]), i);
 	}
+	threadPool.tasks_mutex.unlock();
+	//for (int i = 0; i < posMoves.size(); ++i)
+		//threadPool.task_available_cv.notify_one();
+	////threadPool.task_available_cv.notify_all();
 }
 void populateMapWorker(board b, node* n, vector<pair<int, int>> move, int i) {
 	int gain = b.makeMove(move);
@@ -105,7 +112,7 @@ void populateMapWorker(board b, node* n, vector<pair<int, int>> move, int i) {
 	if (itrBoolPair.second)
 		populateMap(b, itrBoolPair.first->second);
 	else
-		delete nodePtr;
+		delete nodePtr;//delete required b/c entire map operation needs to be done in single try_emplace so that synchronization can be handled by map object on submap level
 }
 int addScores(node* n) {
 	if (n->children.empty())
