@@ -2,9 +2,6 @@
 #include <fstream>
 #include <thread>
 #include <parallel_hashmap/phmap.h>
-#define BS_THREAD_POOL_DISALBE_ERROR_FORWARDING
-#define BS_THREAD_POOL_DISABLE_PAUSE
-#define BS_THREAD_POOL_YEAH_I_KNOW_WHAT_IM_DOING
 #include <BS_thread_pool/minimal.hpp>
 #include <future>
 #include <Windows.h>
@@ -13,7 +10,7 @@ using std::vector; using std::pair; using std::array; using std::cout; using std
 using sq15 = array<array<int, 15>, 15>;
 
 phmap::parallel_flat_hash_map <sq15, node*, phmap::Hash<sq15>, phmap::EqualTo<sq15>, std::allocator<std::pair<const sq15, node*>>, 4, std::mutex> transTable;
-BS::thread_pool_minimal threadPool(11);
+BS::thread_pool_minimal threadPool;
 
 int main() {
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
@@ -31,9 +28,13 @@ int main() {
 	}
 	node root{};
 	populateMap(b, &root);
+	threadPool.wait_for_tasks();
 	cout << "Table size: " << transTable.size() << '\n';
-	/*cout << "Best score: " << addScores(&root) << '\n';
-	cout << "Best score: " << addScores(&root) << '\n';//test if remains same
+	threadPool.tasks.push(std::bind(addScores, &root));
+	threadPool.task_available_cv.notify_one();
+	threadPool.wait_for_tasks();
+	/*cout << "Best score: " << addScores(&root) << '\n';//test if remains same
+	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
 	fout << "Best score: " << addScores(&root) << '\n';*/
@@ -71,7 +72,7 @@ int main() {
 	for (auto& future : futures)
 		future.wait();
 }*/
-void populateMap(board& b, node* n) {
+/*void populateMap(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.resize(posMoves.size());
 	for (int i = 0; i < posMoves.size(); ++i) {
@@ -85,8 +86,18 @@ void populateMap(board& b, node* n) {
 		threadPool.tasks_mutex.unlock();
 		populateMapWorker(b, n, std::move(posMoves[i]), i);
 	}
+}*/
+void populateMap(board& b, node* n) {
+	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
+	n->children.resize(posMoves.size());
+	for (int i = 0; i < posMoves.size(); ++i) {
+		threadPool.tasks_mutex.lock();//test having this outside of loop
+		threadPool.tasks.push(std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i));
+		threadPool.tasks_mutex.unlock();
+		threadPool.task_available_cv.notify_one();
+	}
 }
-void populateMapWorker(board b, node* n, vector<pair<int, int>> move, int i){
+void populateMapWorker(board b, node* n, vector<pair<int, int>> move, int i) {
 	int gain = b.makeMove(move);
 	node* nodePtr = new node;
 	auto itrBoolPair = transTable.try_emplace(b.grid, nodePtr);
@@ -114,7 +125,7 @@ int addScores(node* n) {
 			threadPool.tasks.push([&child, task_promise] {
 				child.scoreGain += addScores(child.nextNode);
 				task_promise->set_value();
-			});
+				});
 			threadPool.tasks_mutex.unlock();
 			threadPool.task_available_cv.notify_one();
 			futures.push_back(task_promise->get_future());
