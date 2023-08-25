@@ -1,7 +1,7 @@
+#pragma once
 #include "board.h"
 #include <string>
 #include <iostream>
-#include <atomic>
 #include <mutex>
 template<> struct std::hash<std::array<std::array<int, 15>, 15>> {
     size_t operator()(const std::array<std::array<int, 15>, 15>& grid) const {

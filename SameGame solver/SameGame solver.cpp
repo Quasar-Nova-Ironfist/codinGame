@@ -19,14 +19,9 @@ int main() {
 	string input;
 	std::getline(std::cin, input);
 	b.grid = gridFromString(input);
-	cout << '\n' << b << endl;
 	std::ofstream fout("D:/Downloads/same game solver output.txt");
-	for (int y = 15; y--;) {
-		for (int x = 0; x < 15; ++x) {
-			fout << b.grid[x][y] << ' ';
-		}
-		fout << '\n';
-	}
+	cout << '\n' << b << endl;
+	fout << input << '\n' << b << endl;
 	node root{};
 	auto start = std::chrono::steady_clock::now();
 	populateMap(b, &root);
@@ -34,75 +29,42 @@ int main() {
 	auto end = std::chrono::steady_clock::now();
 	cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
 	cout << "Table size: " << transTable.size() << '\n';
-	//start = std::chrono::steady_clock::now();
-	//threadPool.tasks.push(std::bind(addScores, &root));
-	//threadPool.task_available_cv.notify_one();
-	//threadPool.wait_for_tasks();
-	//end = std::chrono::steady_clock::now();
-	//cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
-	/*cout << "Best score: " << addScores(&root) << '\n';//test if remains same
+
+	populateMap(b, &root);
+	cout << "Table size: " << transTable.size() << '\n';
+
+
+	/*start = std::chrono::steady_clock::now();
+	threadPool.tasks.push(std::bind(addScores, &root));
+	threadPool.task_available_cv.notify_one();
+	threadPool.wait_for_tasks();
+	end = std::chrono::steady_clock::now();
+	cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
+	cout << "Best score: " << addScores(&root) << '\n';//test if remains same
 	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
-	fout << "Best score: " << addScores(&root) << '\n';*/
+	fout << "Best score: " << addScores(&root) << '\n';
 	node* nodePtr = &root;
 	while (!nodePtr->children.empty()) {
 		cout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
 		fout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
 		nodePtr = nodePtr->children[nodePtr->bestChildIndex].nextNode;
 	}
-	cout << std::flush;
+	cout << std::flush;*/
 	fout.close();
 	for (auto& pair : transTable)
 		delete pair.second;
 }
-/*void populateMap(board& b, node* n) {
-	auto posMoves = b.getConnectedList();
-	n->children.resize(posMoves.size());
-	vector<std::future<void>> futures;
-	futures.reserve(posMoves.size());//repace with clearing of vector assigned by thread id?
-	for (int i = 0; i < posMoves.size(); ++i)
-		futures.push_back(threadPool.submit(true, true,
-			[&b, n, &posMoves, i] {
-				board bCopy = b;
-				int gain = bCopy.makeMove(posMoves[i]);
-				node* nodePtr = new node;
-				auto itrBoolPair = transTable.try_emplace(bCopy.grid, nodePtr);
-				n->children[i] = { posMoves[i][0], gain, itrBoolPair.first->second };
-				if (itrBoolPair.second)
-					populateMap(bCopy, itrBoolPair.first->second);
-				else
-					delete nodePtr;
-			}//lambda
-		)//submit
-		);//push_back
-	for (auto& future : futures)
-		future.wait();
-}*/
-/*void populateMap(board& b, node* n) {
-	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
-	n->children.resize(posMoves.size());
-	for (int i = 0; i < posMoves.size(); ++i) {
-		threadPool.tasks_mutex.lock();
-		if (threadPool.tasks_running + threadPool.tasks.size() < 11) {
-			threadPool.tasks.push(std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i));
-			threadPool.tasks_mutex.unlock();
-			threadPool.task_available_cv.notify_one();
-			continue;
-		}
-		threadPool.tasks_mutex.unlock();
-		populateMapWorker(b, n, std::move(posMoves[i]), i);
-	}
-}*/
 void populateMap(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.resize(posMoves.size());
-	threadPool.tasks_mutex.lock();
+	//threadPool.tasks_mutex.lock();
 	for (int i = 0; i < posMoves.size(); ++i) {
 		//threadPool.tasks.push(std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i));
 		populateMapWorker(b, n, std::move(posMoves[i]), i);
 	}
-	threadPool.tasks_mutex.unlock();
+	//threadPool.tasks_mutex.unlock();
 	//for (int i = 0; i < posMoves.size(); ++i)
 		//threadPool.task_available_cv.notify_one();
 	////threadPool.task_available_cv.notify_all();
@@ -150,20 +112,6 @@ int addScores(node* n) {
 	n->scoreAddLock.unlock();
 	return n->children[n->bestChildIndex].scoreGain;
 }
-/*int node::addScores() {//get rid of bestChildIndex, thread split at addScores to do away with the need for the atomic?
-	if (children.empty())
-		return 0;
-	if (bestChildIndex != -1)
-		return children[bestChildIndex].scoreGain;
-	bestChildIndex = 0;
-	for (int i = 0; i < children.size(); ++i) {
-		if (children[i].scoreNotYetAddedTo.exchange(false, std::memory_order_acq_rel))//may need to be the default seq_cst
-			children[i].scoreGain += children[i].nextNode->addScores();
-		if (children[i].scoreGain > children[bestChildIndex].scoreGain)
-			bestChildIndex = i;
-	}
-	return children[bestChildIndex].scoreGain;
-}*/
 std::ostream& operator<<(std::ostream& os, const nodeToNodeMove& n) {
 	os << n.move.first << ',' << n.move.second;
 	return os;
