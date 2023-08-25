@@ -1,6 +1,8 @@
 #include "board.h"
 #include <string>
 #include <iostream>
+#include <atomic>
+#include <mutex>
 template<> struct std::hash<std::array<std::array<int, 15>, 15>> {
     size_t operator()(const std::array<std::array<int, 15>, 15>& grid) const {
         size_t res = 0;
@@ -10,21 +12,26 @@ template<> struct std::hash<std::array<std::array<int, 15>, 15>> {
         return res;
     }
 };
-
 struct node;
 struct nodeToNodeMove {
     std::pair<int, int> move;
     int scoreGain;
     node* nextNode;
-    bool scoreAlreadyAddedTo = false;
     nodeToNodeMove(std::pair<int, int> m, int s, node* n) : move(m), scoreGain(s), nextNode(n) {}
+    nodeToNodeMove() {}
+    void operator=(const nodeToNodeMove& n) {
+        move = n.move;
+		scoreGain = n.scoreGain;
+        nextNode = n.nextNode;
+    }
 };
 struct node {
-    int bestChildIndex = 0;
+    int bestChildIndex = -1;
     std::vector<nodeToNodeMove> children;
-    int addScores();
-    node() {}
+    std::mutex scoreAddLock;
 };
 std::ostream& operator<< (std::ostream& os, const nodeToNodeMove& n);
 void populateMap(board& b, node* n);
+void populateMapWorker(board b, node* n, std::vector<std::pair<int, int>> move, int i);
+int addScores(node* n);
 std::array<std::array<int, 15>, 15> gridFromString(std::string str);
