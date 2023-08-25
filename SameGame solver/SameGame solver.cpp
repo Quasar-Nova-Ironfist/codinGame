@@ -30,13 +30,16 @@ int main() {
 	node root{};
 	auto start = std::chrono::steady_clock::now();
 	populateMap(b, &root);
+	threadPool.wait_for_tasks();
 	auto end = std::chrono::steady_clock::now();
 	cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
-	threadPool.wait_for_tasks();
 	cout << "Table size: " << transTable.size() << '\n';
+	//start = std::chrono::steady_clock::now();
 	//threadPool.tasks.push(std::bind(addScores, &root));
 	//threadPool.task_available_cv.notify_one();
 	//threadPool.wait_for_tasks();
+	//end = std::chrono::steady_clock::now();
+	//cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
 	/*cout << "Best score: " << addScores(&root) << '\n';//test if remains same
 	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
