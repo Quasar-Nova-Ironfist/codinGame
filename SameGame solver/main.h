@@ -12,28 +12,26 @@ template<> struct std::hash<std::array<std::array<int, 15>, 15>> {
         return res;
     }
 };
-
 struct node;
 struct nodeToNodeMove {
     std::pair<int, int> move;
     int scoreGain;
     node* nextNode;
-    std::atomic_bool scoreNotYetAddedTo = { true };
     nodeToNodeMove(std::pair<int, int> m, int s, node* n) : move(m), scoreGain(s), nextNode(n) {}
-    nodeToNodeMove(const nodeToNodeMove& n) : move(n.move), scoreGain(n.scoreGain), nextNode(n.nextNode) {}
-    nodeToNodeMove& operator=(const nodeToNodeMove& n) {
-		move = n.move;
+    nodeToNodeMove() {}
+    void operator=(const nodeToNodeMove& n) {
+        move = n.move;
 		scoreGain = n.scoreGain;
-		nextNode = n.nextNode;
-		return *this;
-	}
+        nextNode = n.nextNode;
+    }
 };
-struct node {//replace with just pair<int, vector<nodeToNodeMove>>?
+struct node {
     int bestChildIndex = -1;
     std::vector<nodeToNodeMove> children;
-    //int addScores();//move outside of struct?
+    std::mutex scoreAddLock;
 };
 std::ostream& operator<< (std::ostream& os, const nodeToNodeMove& n);
 void populateMap(board& b, node* n);
+void populateMapWorker(board b, node* n, std::vector<std::pair<int, int>> move, int i);
 int addScores(node* n);
 std::array<std::array<int, 15>, 15> gridFromString(std::string str);
