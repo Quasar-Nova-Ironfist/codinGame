@@ -49,3 +49,5 @@ struct populateMapWorkerArgs {
     }
 };
 void populateMapWorker(populateMapWorkerArgs& args);
+bool supercavitating(board& b, std::vector<std::pair<int, int>>& move);
+bool individualTilePreventsSupercavitation(board& b, std::pair<int, int> tile);
