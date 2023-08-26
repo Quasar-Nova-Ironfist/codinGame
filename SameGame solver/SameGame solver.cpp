@@ -1,7 +1,10 @@
 #include "main.h"
 #include <fstream>
 #include <parallel_hashmap/phmap.h>
-#include <BS_thread_pool/minimal.hpp>
+#define BS_THREAD_POOL_DISABLE_PAUSE
+#define BS_THREAD_POOL_DSiABLE_ERROR_FORWARDING
+#define BS_THREAD_POOL_YEAH_I_KNOW_WHAT_IM_DOING
+#include <BS_thread_pool/full.hpp>
 #include <future>
 #include <Windows.h>
 
@@ -11,7 +14,7 @@ using std::vector; using std::pair; using std::array; using std::cout; using std
 using sq15 = array<array<int, 15>, 15>;
 
 phmap::parallel_flat_hash_map <sq15, node*, phmap::Hash<sq15>, phmap::EqualTo<sq15>, std::allocator<std::pair<const sq15, node*>>, 4, std::mutex> transTable;
-BS::thread_pool_minimal threadPool;
+BS::thread_pool threadPool;
 
 int main() {
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
@@ -21,10 +24,18 @@ int main() {
 	b.grid = gridFromString(input);
 	std::ofstream fout("D:/Downloads/same game solver output.txt");
 	cout << '\n' << b << endl;
-	fout << input << '\n' << b << endl;
+	fout << input << '\n';
+	for (int y = 15; y--;) {
+		for (int x = 0; x < 15; ++x) {
+			fout << b.grid[x][y] << ' ';
+		}
+		fout << '\n';
+	}
+	fout << endl;
 	node root{};
 	auto start = std::chrono::steady_clock::now();
-	populateMap(b, &root);
+	//populateMap(b, &root);
+	threadPool.push_task(populateMap, b, &root);
 	threadPool.wait_for_tasks();
 	auto end = std::chrono::steady_clock::now();
 	cout << "Time taken: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms\n";
@@ -34,7 +45,7 @@ int main() {
 	cout << "Table size: " << transTable.size() << '\n';
 
 
-	/*start = std::chrono::steady_clock::now();
+	start = std::chrono::steady_clock::now();
 	threadPool.tasks.push(std::bind(addScores, &root));
 	threadPool.task_available_cv.notify_one();
 	threadPool.wait_for_tasks();
@@ -43,26 +54,46 @@ int main() {
 	cout << "Best score: " << addScores(&root) << '\n';//test if remains same
 	cout << "Best score: " << addScores(&root) << '\n';
 	cout << "Best score: " << addScores(&root) << '\n';
-	cout << "Best score: " << addScores(&root) << '\n';
-	fout << "Best score: " << addScores(&root) << '\n';
 	node* nodePtr = &root;
 	while (!nodePtr->children.empty()) {
+		cout << nodePtr->children.size() << endl;
 		cout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
 		fout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
 		nodePtr = nodePtr->children[nodePtr->bestChildIndex].nextNode;
 	}
-	cout << std::flush;*/
+	cout << std::flush;
 	fout.close();
 	for (auto& pair : transTable)
 		delete pair.second;
 }
+
+
 void populateMap(board& b, node* n) {
+	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
+	n->children.reserve(posMoves.size());
+	for (int i = 0; i < posMoves.size(); ++i) {
+		board bCopy = b;
+		int gain = bCopy.makeMove(posMoves[i]);
+		node* nodePtr = new node;
+		auto itrBoolPair = transTable.try_emplace(bCopy.grid, nodePtr);
+		n->children.emplace_back(posMoves[i][0], gain, itrBoolPair.first->second);
+		if (itrBoolPair.second)
+			threadPool.push_task(populateMap, std::ref(bCopy), itrBoolPair.first->second);
+		else
+			delete nodePtr;//delete required b/c entire map operation needs to be done in single try_emplace so that synchronization can be handled by map object on submap level
+	}
+}
+
+void populateMap2(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.resize(posMoves.size());
 	//threadPool.tasks_mutex.lock();
 	for (int i = 0; i < posMoves.size(); ++i) {
 		//threadPool.tasks.push(std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i));
-		populateMapWorker(b, n, std::move(posMoves[i]), i);
+		//auto task = std::bind(populateMapWorker, b, n, std::move(posMoves[i]), i);
+		//std::function<void()> taskF = std::bind(&populateMapWorker, b, n, std::move(posMoves[i]), i);
+		//populateMapWorker(b, n, std::move(posMoves[i]), i);
+		//threadPool.task_available_cv.notify_one();
 	}
 	//threadPool.tasks_mutex.unlock();
 	//for (int i = 0; i < posMoves.size(); ++i)
@@ -79,6 +110,19 @@ void populateMapWorker(board b, node* n, vector<pair<int, int>> move, int i) {
 	else
 		delete nodePtr;//delete required b/c entire map operation needs to be done in single try_emplace so that synchronization can be handled by map object on submap level
 }
+/*int addScores(node* n) {//this may be faster than the multithreaded version
+	if (n->children.empty())
+		return 0;
+	if (n->bestChildIndex != -1)
+		return n->children[n->bestChildIndex].scoreGain;
+	n->bestChildIndex = 0;
+	for (auto& child : n->children)
+		child.scoreGain += addScores(child.nextNode);
+	for (int i = 1; i < n->children.size(); ++i)
+		if (n->children[i].scoreGain > n->children[n->bestChildIndex].scoreGain)
+			n->bestChildIndex = i;
+	return n->children[n->bestChildIndex].scoreGain;
+}*/
 int addScores(node* n) {
 	if (n->children.empty())
 		return 0;
@@ -109,6 +153,9 @@ int addScores(node* n) {
 	}
 	for (std::future<void>& future : futures)
 		future.wait();
+	for (int i = 1; i < n->children.size(); ++i)
+		if (n->children[i].scoreGain > n->children[n->bestChildIndex].scoreGain)
+			n->bestChildIndex = i;
 	n->scoreAddLock.unlock();
 	return n->children[n->bestChildIndex].scoreGain;
 }

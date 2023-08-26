@@ -19,11 +19,6 @@ struct nodeToNodeMove {
     node* nextNode;
     nodeToNodeMove(std::pair<int, int> m, int s, node* n) : move(m), scoreGain(s), nextNode(n) {}
     nodeToNodeMove() {}
-    void operator=(const nodeToNodeMove& n) {
-        move = n.move;
-		scoreGain = n.scoreGain;
-        nextNode = n.nextNode;
-    }
 };
 struct node {
     int bestChildIndex = -1;
