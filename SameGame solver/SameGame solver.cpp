@@ -66,9 +66,7 @@ int main() {
 	for (auto& pair : transTable)
 		delete pair.second;
 }
-
-
-void populateMap(board& b, node* n) {
+void populateMap3(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.reserve(posMoves.size());
 	for (int i = 0; i < posMoves.size(); ++i) {
