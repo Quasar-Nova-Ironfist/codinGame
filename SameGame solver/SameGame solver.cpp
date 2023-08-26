@@ -47,55 +47,10 @@ int main() {
 	for (auto& pair : transTable)
 		delete pair.second;
 }
-bool supercavitating(board& b, std::vector<std::pair<int, int>>& move) {//revise into more general check for if the move affects only the tiles of the move and no others
-	if (move.size() == 2) {
-		if (move[0].first == move[1].first) {
-			if (move[0].second > move[1].second)
-				std::swap(move[0].second, move[1].second);
-			if (!move[0].second)
-				return false;
-			if (move[1].second == 14 || !b.grid[move[1].first][move[1].second + 1])
-				return true;
-		}
-		else {
-			if (!move[0].second)
-				return false;
-			if (move[0].second == 14 || (!b.grid[move[0].first][move[0].second + 1] && !b.grid[move[1].first][move[0].second + 1]))
-				return true;
-		}
-	}
-	return false;
-}
-bool individualTilePreventsSupercavitation(board& b, std::pair<int, int> tile) {//not working
-	if (!tile.second)
-		return true;
-	int color = b.grid[tile.first][tile.second];
-	for (int y = tile.second + 1; y < 15; ++y) {
-		if (!b.grid[tile.first][y])
-			return false;
-		if (b.grid[tile.first][y] != color)
-			return true;
-	}
-	return false;
-}
 void populateMap(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.resize(posMoves.size());
 	for (int i = 0; i < n->children.size(); ++i) {
-		if (i && supercavitating(b, posMoves[i])) {
-			n->children.pop_back();
-			--i;
-			continue;
-		}
-		/*if (i) {
-			for (auto& pair : posMoves[i])
-				if (individualTilePreventsSupercavitation(b, pair))
-					goto doesNotSupercavitate;
-			n->children.pop_back();
-			--i;
-			continue;
-		}*/
-		doesNotSupercavitate:
 		board bCopy = b;
 		pool.tasks_mutex.lock();
 		pool.tasks.emplace_back(std::move(bCopy), n, std::move(posMoves[i]), i);
@@ -110,7 +65,7 @@ void populateMapWorker(populateMapWorkerArgs& args) {
 	args.n->children[args.i] = { args.move[0], gain, itrBoolPair.first->second };
 	if (itrBoolPair.second) {
 		populateMap(args.b, itrBoolPair.first->second);
-	}
+	} 
 	else
 		delete nodePtr;
 }
