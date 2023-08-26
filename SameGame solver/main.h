@@ -30,3 +30,22 @@ void populateMap(board& b, node* n);
 void populateMapWorker(board b, node* n, std::vector<std::pair<int, int>> move, int i);
 int addScores(node* n);
 std::array<std::array<int, 15>, 15> gridFromString(std::string str);
+struct populateMapWorkerArgs {
+	board b;
+	node* n;
+	std::vector<std::pair<int, int>> move;
+	int i;
+    populateMapWorkerArgs(board b_, node* n_, std::vector<std::pair<int, int>> move_, int i_) {
+        b = std::move(b_);
+        n = std::move(n_);
+        move = std::move(move_);
+        i = std::move(i_);
+    }
+    populateMapWorkerArgs(populateMapWorkerArgs&& o) {
+        b = std::move(o.b);
+		n = o.n;
+		move = std::move(o.move);
+		i = o.i;
+    }
+};
+void populateMapWorker(populateMapWorkerArgs& args);

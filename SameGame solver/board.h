@@ -15,5 +15,16 @@ public:
         pastMaxX = other.pastMaxX;
         pastMaxY = other.pastMaxY;
     }
+    board(board&& other) {
+        grid = std::move(other.grid);
+		pastMaxX = other.pastMaxX;
+		pastMaxY = other.pastMaxY;
+    }
+    board& operator=(const board& other) {
+		grid = other.grid;
+		pastMaxX = other.pastMaxX;
+		pastMaxY = other.pastMaxY;
+		return *this;
+	}
 };
 std::ostream& operator<<(std::ostream& os, const board& b);
