@@ -47,25 +47,71 @@ int main() {
 	for (auto& pair : transTable)
 		delete pair.second;
 }
+bool inconsequential(board& b, vector<pair<int, int>>& move){
+	int color = b.grid[move[0].first][move[0].second];
+	int column = move[0].first;
+	bool above = false, below = false, right = false;
+	for (pair<int, int> pair : move) {
+		if (column != pair.first)
+			column = -1;
+		for (int y = pair.second + 1; y < b.pastMaxY; ++y) {
+			if (!b.grid[pair.first][y])
+				break;
+			if (b.grid[pair.first][y] != color) {
+				above = true;
+				break;
+			}
+		}
+		for (int y = pair.second - 1; y > 0; --y) {
+			if (b.grid[pair.first][y] != color) {
+				below = true;
+				break;
+			}
+		}
+		for (int x = pair.first + 1; x < b.pastMaxX; ++x) {
+			if (!b.grid[x][pair.second])
+				break;
+			if (b.grid[x][pair.second] != color) {
+				right = true;
+				break;
+			}
+		}
+	}
+	return !above && ((column != -1 && (below || !right)) || (!below && !right));
+}
 void populateMap(board& b, node* n) {
 	vector<vector<pair<int, int>>> posMoves = b.getConnectedList();
 	n->children.resize(posMoves.size());
 	for (int i = 0; i < n->children.size(); ++i) {
+		if (i && inconsequential(b, posMoves[i])) {
+			n->children.pop_back();
+			--i;
+			continue;
+		}
 		board bCopy = b;
 		pool.tasks_mutex.lock();
-		pool.tasks.emplace_back(std::move(bCopy), n, std::move(posMoves[i]), i);
-		pool.tasks_mutex.unlock();
-		pool.task_available_cv.notify_one();
+		if (pool.tasks_running + pool.qBoard.size() < pool.thread_count) {
+			pool.qBoard.push_back(std::move(b));
+			pool.qNodePtr.push_back(n);
+			pool.qMove.push_back(std::move(posMoves[i]));
+			pool.qI.push_back(i);
+			pool.tasks_mutex.unlock();
+			pool.task_available_cv.notify_one();		
+		}
+		else {
+			pool.tasks_mutex.unlock();
+			populateMapWorker(std::move(bCopy), n, std::move(posMoves[i]), i);
+		}
 	}
 }
-void populateMapWorker(populateMapWorkerArgs& args) {
-	int gain = args.b.makeMove(args.move);
+void populateMapWorker(board b, node* n, std::vector<std::pair<int, int>> move, int i) {
+	int gain = b.makeMove(move);
 	node* nodePtr = new node;
-	auto itrBoolPair = transTable.try_emplace(args.b.grid, nodePtr);
-	args.n->children[args.i] = { args.move[0], gain, itrBoolPair.first->second };
+	auto itrBoolPair = transTable.try_emplace(b.grid, nodePtr);
+	n->children[i] = { move[0], gain, itrBoolPair.first->second };
 	if (itrBoolPair.second) {
-		populateMap(args.b, itrBoolPair.first->second);
-	} 
+		populateMap(b, itrBoolPair.first->second);
+	}
 	else
 		delete nodePtr;
 }

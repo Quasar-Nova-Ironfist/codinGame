@@ -5,34 +5,45 @@
 #include <condition_variable>
 struct threadPool{//thread pool specialized for this one specific fucking task. I never want to see #include<functional> again
     std::condition_variable task_available_cv = {}, tasks_done_cv = {};
-    std::vector<populateMapWorkerArgs> tasks;
     int tasks_running = 0;
     mutable std::mutex tasks_mutex = {};
     int thread_count = 0;
     std::unique_ptr<std::thread[]> threads = nullptr;
     bool waiting = false, workers_running = true;
+
+    std::vector<board> qBoard;
+    std::vector<node*> qNodePtr;
+    std::vector<std::vector<std::pair<int, int>>> qMove;
+    std::vector<int> qI;
+
     void worker() {
         while (true)
         {
             std::unique_lock tasks_lock(tasks_mutex);
-            task_available_cv.wait(tasks_lock, [this] { return !tasks.empty() || !workers_running; });
+            task_available_cv.wait(tasks_lock, [this] { return !qBoard.empty() || !workers_running; });
             if (!workers_running)
                 break;
-            populateMapWorkerArgs task = std::move(tasks.back());
-            tasks.pop_back();
+            board b = std::move(qBoard.back());
+            qBoard.pop_back();
+            node* n = qNodePtr.back();
+            qNodePtr.pop_back();
+            std::vector<std::pair<int, int>> m = std::move(qMove.back());
+            qMove.pop_back();
+            int i = qI.back();
+            qI.pop_back();            
             ++tasks_running;
             tasks_lock.unlock();
-            populateMapWorker(task);
+            populateMapWorker(std::move(b), n, std::move(m), i);
             tasks_lock.lock();
             --tasks_running;
-            if (waiting && !tasks_running && tasks.empty())
+            if (waiting && !tasks_running && qBoard.empty())
                 tasks_done_cv.notify_all();
         }
     }
     void wait_for_tasks() {
         std::unique_lock tasks_lock(tasks_mutex);
         waiting = true;
-        tasks_done_cv.wait(tasks_lock, [this] { return !tasks_running && tasks.empty(); });
+        tasks_done_cv.wait(tasks_lock, [this] { return !tasks_running && qBoard.empty(); });
         waiting = false;
     }
     threadPool(int thread_count_) : thread_count(thread_count_), threads(std::make_unique<std::thread[]>(thread_count_)) {
@@ -42,7 +53,7 @@ struct threadPool{//thread pool specialized for this one specific fucking task. 
     ~threadPool() {
         std::unique_lock tasks_lock(tasks_mutex);
         waiting = true;
-        tasks_done_cv.wait(tasks_lock, [this] { return !tasks_running && tasks.empty(); });
+        tasks_done_cv.wait(tasks_lock, [this] { return !tasks_running && qBoard.empty(); });
         workers_running = false;
         tasks_lock.unlock();
         task_available_cv.notify_all();
