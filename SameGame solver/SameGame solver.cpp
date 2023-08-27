@@ -33,19 +33,18 @@ int main() {
 	fout << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds\n";
 	cout << "Table size: " << transTable.size() << '\n';
 	fout << "Table size: " << transTable.size() << '\n';
-	cout << "Best score: " << addScores(&root) << '\n';
-	fout << "Best score: " << addScores(&root) << '\n';
-
+	cout << "Score: " << addScores(&root) << '\n';
+	fout << "Score: " << addScores(&root) << '\n';
 	node* nodePtr = &root;
 	while (!nodePtr->children.empty()) {
-		cout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
-		fout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
+		cout << nodePtr->children[nodePtr->bestChildIndex].move.first << ',' << nodePtr->children[nodePtr->bestChildIndex].move.second << ' ';
+		fout << nodePtr->children[nodePtr->bestChildIndex].move.first << ',' << nodePtr->children[nodePtr->bestChildIndex].move.second << ' ';
 		nodePtr = nodePtr->children[nodePtr->bestChildIndex].nextNode;
 	}
-	cout << std::flush;
-	fout.close();
 	for (auto& pair : transTable)
 		delete pair.second;
+	cout << std::flush;
+	fout.close();
 }
 bool inconsequential(board& b, vector<pair<int, int>>& move){
 	int color = b.grid[move[0].first][move[0].second];
