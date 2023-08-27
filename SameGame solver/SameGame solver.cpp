@@ -90,18 +90,12 @@ void populateMap(board& b, node* n) {
 		}
 		board bCopy = b;
 		pool.tasks_mutex.lock();
-		if (pool.tasks_running + pool.qBoard.size() < pool.thread_count) {
-			pool.qBoard.push_back(std::move(b));
-			pool.qNodePtr.push_back(n);
-			pool.qMove.push_back(std::move(posMoves[i]));
-			pool.qI.push_back(i);
-			pool.tasks_mutex.unlock();
-			pool.task_available_cv.notify_one();		
-		}
-		else {
-			pool.tasks_mutex.unlock();
-			populateMapWorker(std::move(bCopy), n, std::move(posMoves[i]), i);
-		}
+		pool.qBoard.push_back(std::move(b));
+		pool.qNodePtr.push_back(n);
+		pool.qMove.push_back(std::move(posMoves[i]));
+		pool.qI.push_back(i);
+		pool.tasks_mutex.unlock();
+		pool.task_available_cv.notify_one();		
 	}
 }
 void populateMapWorker(board b, node* n, std::vector<std::pair<int, int>> move, int i) {
