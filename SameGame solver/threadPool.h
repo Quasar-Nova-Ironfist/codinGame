@@ -3,7 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-struct threadPool{//thread pool specialized for this one specific fucking task. I never want to see #include<functional> again
+class threadPool{//thread pool specialized for this one specific fucking task. I never want to see #include<functional> again
     std::condition_variable task_available_cv = {}, tasks_done_cv = {};
     int tasks_running = 0;
     mutable std::mutex tasks_mutex = {};
@@ -16,6 +16,7 @@ struct threadPool{//thread pool specialized for this one specific fucking task. 
     std::vector<std::vector<std::pair<int, int>>> qMove;
     std::vector<int> qI;
 
+    friend void populateMap(board& b, node* n);
     void worker() {
         while (true)
         {
@@ -40,6 +41,7 @@ struct threadPool{//thread pool specialized for this one specific fucking task. 
                 tasks_done_cv.notify_all();
         }
     }
+public:
     void wait_for_tasks() {
         std::unique_lock tasks_lock(tasks_mutex);
         waiting = true;
