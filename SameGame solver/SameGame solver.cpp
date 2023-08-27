@@ -3,6 +3,7 @@
 #include <fstream>
 #include <parallel_hashmap/phmap.h>
 #include <chrono>
+#include <Windows.h>
 
 using std::vector; using std::pair; using std::array; using std::cout; using std::endl; using std::string;
 using sq15 = array<array<int, 15>, 15>;
@@ -11,6 +12,9 @@ phmap::parallel_flat_hash_map <sq15, node*, phmap::Hash<sq15>, phmap::EqualTo<sq
 threadPool pool(12);
 
 int main() {
+	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+	int bestScore = 0;
+	vector<int> bestPath;
 	board b{};
 	string input;
 	std::getline(std::cin, input);
@@ -24,28 +28,75 @@ int main() {
 		}
 		fout << '\n';
 	}
-	node root{};
 	auto start = std::chrono::steady_clock::now();
-	populateMap(b, &root);
-	pool.wait_for_tasks();
+	auto posMoves0 = b.getConnectedList();
+	for (auto& move0 : posMoves0) {
+		vector<int> movePath;
+		movePath.push_back(move0[0].first);
+		movePath.push_back(move0[0].second);
+		board b0 = b;
+		int score0 = b0.makeMove(move0);
+		/*auto posMoves1 = b0.getConnectedList();
+		for (auto& move1 : posMoves1) {
+			movePath.push_back(move1[0].first);
+			movePath.push_back(move1[0].second);
+			board b1 = b0;
+			int score1 = b1.makeMove(move1) + score0;
+			node root{};
+			populateMap(b1, &root);
+			pool.wait_for_tasks();
+			score1 += addScores(&root);
+			cout << "Table size: " << transTable.size() << '\n';
+			fout << "Table size: " << transTable.size() << '\n';
+			cout << "Score: " << addScores(&root) << "\n\n";
+			fout << "Score: " << addScores(&root) << "\n\n";
+			if (score1 > bestScore) {
+				bestScore = score1;
+				node* nodePtr = &root;
+				while (!nodePtr->children.empty()) {
+					movePath.push_back(nodePtr->children[nodePtr->bestChildIndex].move.first);
+					movePath.push_back(nodePtr->children[nodePtr->bestChildIndex].move.second);
+					nodePtr = nodePtr->children[nodePtr->bestChildIndex].nextNode;
+				}
+				bestPath = movePath;
+			}
+			for (auto& pair : transTable)
+				delete pair.second;
+			transTable.clear();
+		}*/
+		node root{};
+		populateMap(b0, &root);
+		pool.wait_for_tasks();
+		score0 += addScores(&root);
+		cout << "Table size: " << transTable.size() << '\n';
+		fout << "Table size: " << transTable.size() << '\n';
+		cout << "Score: " << addScores(&root) << "\n\n";
+		fout << "Score: " << addScores(&root) << "\n\n";
+		if (score0 > bestScore) {
+			bestScore = score0;
+			node* nodePtr = &root;
+			while (!nodePtr->children.empty()) {
+				movePath.push_back(nodePtr->children[nodePtr->bestChildIndex].move.first);
+				movePath.push_back(nodePtr->children[nodePtr->bestChildIndex].move.second);
+				nodePtr = nodePtr->children[nodePtr->bestChildIndex].nextNode;
+			}
+			bestPath = movePath;
+		}
+		for (auto& pair : transTable)
+			delete pair.second;
+		transTable.clear();
+	}
 	auto end = std::chrono::steady_clock::now();
 	cout << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds\n";
 	fout << "Time taken: " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << " seconds\n";
-	cout << "Table size: " << transTable.size() << '\n';
-	fout << "Table size: " << transTable.size() << '\n';
-	cout << "Best score: " << addScores(&root) << '\n';
-	fout << "Best score: " << addScores(&root) << '\n';
-
-	node* nodePtr = &root;
-	while (!nodePtr->children.empty()) {
-		cout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
-		fout << nodePtr->children[nodePtr->bestChildIndex] << ", ";
-		nodePtr = nodePtr->children[nodePtr->bestChildIndex].nextNode;
+	cout << "Best score: " << bestScore << '\n';
+	fout << "Best score: " << bestScore << '\n';
+	for (int i = 0; i < bestPath.size(); i += 2) {
+		cout << bestPath[i] << ',' << bestPath[i + 1] << ' ';
+		fout << bestPath[i] << ',' << bestPath[i + 1] << ' ';
 	}
 	cout << std::flush;
 	fout.close();
-	for (auto& pair : transTable)
-		delete pair.second;
 }
 bool inconsequential(board& b, vector<pair<int, int>>& move){
 	int color = b.grid[move[0].first][move[0].second];
