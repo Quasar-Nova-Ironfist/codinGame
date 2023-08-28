@@ -23,7 +23,6 @@ struct nodeToNodeMove {
 struct node {
     int bestChildIndex = -1;
     std::vector<nodeToNodeMove> children;
-    std::mutex scoreAddLock;
 };
 std::ostream& operator<< (std::ostream& os, const nodeToNodeMove& n);
 void populateMap(board& b, node* n);
