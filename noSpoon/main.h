@@ -33,7 +33,6 @@ struct board {
 	int nodesFull = 0;
 	void solve();
 	std::pair<size_t, std::vector<int>> getHashKeyPair();
-	void printLinks();
 	board() = default;
 	board(board& o);
 };

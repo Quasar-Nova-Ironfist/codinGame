@@ -26,23 +26,21 @@ hashKeyPair board::getHashKeyPair() {
 		res.push_back(l.n);
 	return std::make_pair(hash, res);
 }
-void board::printLinks() {
-	for (auto& l : links)
-		if (l.n)
-			std::cout << l.a->x << ',' << l.a->y << ',' << l.b->x << ',' << l.b->y << ',' << l.n << ", ";
-	std::cout << std::endl;
-	while (true)//prevent accidental exit
-		std::cin >> hash;
-}
 void board::solve() {
-	if (nodesFull == nodes.size())
-		printLinks();
+	if (nodesFull == nodes.size()) {
+		for (auto& l : links)
+			if (l.n)
+				std::cout << l.a->x << ',' << l.a->y << ',' << l.b->x << ',' << l.b->y << ',' << l.n << ", ";
+		std::cout << std::endl;
+		while (true)//prevent accidental exit
+			std::cin >> hash;	
+	}
 	for (int numLinks = 3; --numLinks;) {
 		for (auto& l : links) {
 			if (l.n || l.a->t + numLinks > l.a->n || l.b->t + numLinks > l.b->n)
 				continue;
 			l.n = numLinks;
-			hash ^= l.bitStrings[numLinks - 1];//have additional entry in bitStrings so as to not need the - 1? Malloc the bitStrings and dec pointer to them?
+			hash ^= l.bitStrings[numLinks - 1];
 			if (transTable.emplace(getHashKeyPair()).second) {
 				l.a->t += numLinks;
 				l.b->t += numLinks;
