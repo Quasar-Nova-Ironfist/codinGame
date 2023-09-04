@@ -132,7 +132,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="board.cpp" />
     <ClCompile Include="noSpoon.cpp" />
   </ItemGroup>
   <ItemGroup>
