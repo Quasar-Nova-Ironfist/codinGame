@@ -3,16 +3,16 @@
 #include <vector>
 #include <unordered_set>
 #include <random>
-using std::cerr; using std::endl;
+using std::cerr; using std::endl; using std::vector;
 struct link;
 struct node { int n, x, y, t = 0, linkCount = 0; link* links[4]; };
 struct link { node* a, * b; int n = 0; size_t bitStrings[2]; };
-std::vector<link> links;
-std::vector<link> solvedLinks;
-std::vector<node> nodes;
+vector<link> links;
+vector<link> solvedLinks;
+vector<node> nodes;
 size_t hash = 0;
-template<>struct std::hash<std::vector<link>> { size_t operator()(const vector<link>& z) { return::hash; } };
-std::unordered_set<std::vector<link>> transTable;
+template<>struct std::hash<vector<link>> { size_t operator()(const vector<link>& z) { return ::hash; } };
+std::unordered_set<vector<link>> transTable;
 int nodesFull = 0;
 void solve() {
     if (nodesFull == nodes.size()) {
@@ -53,7 +53,7 @@ void solve() {
 void setupLinks() {
     int width, height;
     std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
-    std::vector<std::vector<node*>> grid(height, std::vector<node*>(width, nullptr));
+    vector<vector<node*>> grid(height, vector<node*>(width, nullptr));
     for (int y = 0; y < height; ++y) {
         std::string line;
         getline(std::cin, line);
