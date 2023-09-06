@@ -12,7 +12,7 @@ struct link {
 	node* a, * b;
 	int_fast8_t num = 0, crossCount = 0;
 	size_t bitStrings[2];
-	link* crosses[8] = {};
+	link* crosses[15] = {};
 	link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) {
 		bitStrings[0] = b0;
 		bitStrings[1] = b1;
