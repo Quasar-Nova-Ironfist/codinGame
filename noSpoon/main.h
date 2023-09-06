@@ -27,4 +27,4 @@ bool crossesActive(link& l);
 std::vector<int_fast8_t> getLinkAmounts();
 void solve();
 void removeNode(node* n);
-//void removeLink(link* l);
+void removeLink(link* l);
