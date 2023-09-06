@@ -107,16 +107,18 @@ int main() {
 				bool l0Vert = l0.a->x == l0.b->x;
 				if (l0Vert == (l1.a->x == l1.b->x))
 					continue;
-				if (l0Vert)
+				if (l0Vert) {
 					if (l0.a->y < l1.a->y && l0.b->y > l1.a->y && l1.a->x < l0.a->x && l1.b->x > l1.a->x) {
 						l0.crosses[l0.crossCount++] = &l1;
 						cout << "l0 crosses l1; " << l0.a->x << ',' << l0.a->y << ' ' << l0.b->x << ',' << l0.b->y << " : " << l1.a->x << ',' << l1.a->y << ' ' << l1.b->x << ',' << l1.b->y << endl;
-					}//RIF^
-				else
+					}//RIF^				
+				}
+				else {
 					if (l1.a->y < l0.a->y && l1.b->y > l0.a->y && l0.a->x < l1.a->x && l0.b->x > l0.a->x) {
 						l0.crosses[l0.crossCount++] = &l1;
 						cout << "l0 crosses l1; " << l0.a->x << ',' << l0.a->y << ' ' << l0.b->x << ',' << l0.b->y << " : " << l1.a->x << ',' << l1.a->y << ' ' << l1.b->x << ',' << l1.b->y << endl;
 					}
+				}
 			}
 		}
 	}//establish lists of crossing links
