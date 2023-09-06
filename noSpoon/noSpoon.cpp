@@ -134,12 +134,13 @@ int main() {
 					int linkAmount = oNode->num;
 					if (linkAmount > 2)
 						linkAmount = 2;
-					oNode->num -= linkAmount;
 					cout << n.x << ',' << n.y << ',' << oNode->x << ',' << oNode->y << ',' << linkAmount << ", ";
-					removeLink(n.links[i]);
+					if (!(oNode->num -= linkAmount)) {
+						removeNode(oNode);
+						--i;
+					}
 				}
-				nodes[&n - &nodes[0]] = nodes.back();
-				nodes.pop_back();
+				removeNode(&n);
 				anyFound = true;
 			}
 		}
@@ -149,6 +150,19 @@ int main() {
 		}
 	}//collapse required links
 	//solve();
+}
+void removeNode(node* n){
+	while(n->linkCount)
+		removeLink(n->links[0]);
+	for (int i = 0; i < nodes.back().linkCount; ++i) {
+		link* l = nodes.back().links[i];
+		if (&nodes.back() == l->a)
+			l->a = n;
+		else
+			l->b = n;
+	}
+	*n = nodes.back();
+	nodes.pop_back();
 }
 void removeLink(link* l){
 	for (int i = 0; i < 4; ++i)
