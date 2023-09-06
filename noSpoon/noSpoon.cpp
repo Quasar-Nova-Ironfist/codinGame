@@ -12,6 +12,12 @@ int nodesFull = 0;
 template<> struct std::hash<vector<int>> { size_t operator()(const vector<int>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<int>> transTable;
 
+bool crossesActive(link& l){
+	for (int i = 0; i < l.crossCount; ++i)
+		if (l.crosses[i]->num)
+			return true;
+	return false;
+}
 void solve() {
 	if (nodesFull == nodes.size()) {
 		for (auto& l : links)
@@ -23,12 +29,12 @@ void solve() {
 	}
 	for (int numLinks = 3; --numLinks;) {
 		for (auto& l : links) {
-			if (l.num || l.a->t + numLinks > l.a->num || l.b->t + numLinks > l.b->num)
+			if (l.num || l.a->t + numLinks > l.a->num || l.b->t + numLinks > l.b->num || crossesActive(l))
 				continue;
 			l.num = numLinks;
 			hash ^= l.bitStrings[numLinks - 1];
 			if (transTable.emplace(getLinkAmounts()).second) {
-				l.a->t += numLinks;
+				l.a->t += numLinks;//todo remove node::t, decrease node::num instead
 				l.b->t += numLinks;
 				nodesFull += (l.a->t == l.a->num) + (l.b->t == l.b->num);
 				solve();
@@ -151,9 +157,38 @@ int main() {
 	}//collapse required links
 	//solve();
 }
-void removeNode(node* n){
-	while(n->linkCount)
-		removeLink(n->links[0]);
+void removeNode(node* n) {
+	for (int i = 0; i < n->linkCount; ++i) {
+		link* l = n->links[i];
+		node* oNode = l->getOther(n);
+		for (int j = 0; j < 4; ++j)
+			if (links.back().a->links[j] == &links.back()) {
+				links.back().a->links[j] = l;
+				break;
+			}
+		for (int j = 0; j < 4; ++j)
+			if (links.back().b->links[j] == &links.back()) {
+				links.back().b->links[j] = l;
+				break;
+			}
+		for (int j = 0; j < 4; ++j)
+			if (oNode->links[j] == l) {
+				oNode->links[j] = oNode->links[oNode->linkCount];
+				oNode->links[oNode->linkCount--] = nullptr;
+				break;
+			}
+		for (int j = 0; j < l->crossCount; ++j) {
+			link* l2 = l->crosses[j];
+			for (int j = 0; j < l2->crossCount; ++j)
+				if (l2->crosses[j] == l) {
+					l2->crosses[j] = l2->crosses[l2->crossCount];
+					l2->crosses[l2->crossCount--] = nullptr;
+					break;
+				}
+		}
+		*l = std::move(links.back());
+		links.pop_back();
+	}
 	for (int i = 0; i < nodes.back().linkCount; ++i) {
 		link* l = nodes.back().links[i];
 		if (&nodes.back() == l->a)
@@ -161,10 +196,10 @@ void removeNode(node* n){
 		else
 			l->b = n;
 	}
-	*n = nodes.back();
+	*n = std::move(nodes.back());
 	nodes.pop_back();
 }
-void removeLink(link* l){
+/*void removeLink(link* l){
 	for (int i = 0; i < 4; ++i)
 		if (l->a->links[i] == l) {
 			l->a->links[i] = l->a->links[l->a->linkCount];
@@ -198,4 +233,4 @@ void removeLink(link* l){
 		}
 	*l = std::move(links.back());
 	links.pop_back();
-}
+}*/

@@ -24,5 +24,6 @@ struct link {
 };
 void solve();
 std::vector<int> getLinkAmounts();
-void removeLink(link* l);
+//void removeLink(link* l);
 void removeNode(node* n);
+bool crossesActive(link& l);
