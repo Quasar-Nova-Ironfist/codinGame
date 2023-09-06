@@ -3,7 +3,7 @@
 #include <vector>
 struct link;
 struct node {
-	int num, x, y, t = 0, linkCount = 0;
+	int num, x, y, linkCount = 0;
 	link* links[4] = {};
 	node(int n_, int x_, int y_) : num(n_), x(x_), y(y_) {}
 };
@@ -22,8 +22,8 @@ struct link {
 		return a;
 	}
 };
-void solve();
+bool crossesActive(link& l);
 std::vector<int> getLinkAmounts();
+void solve();
 //void removeLink(link* l);
 void removeNode(node* n);
-bool crossesActive(link& l);

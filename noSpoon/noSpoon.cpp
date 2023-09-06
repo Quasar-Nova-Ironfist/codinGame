@@ -7,7 +7,7 @@ using std::cout; using std::endl; using std::vector;
 std::vector<link> links;
 size_t hash = 0;
 std::vector<node> nodes;
-int nodesFull = 0;
+int nodesLeft = 0;
 
 template<> struct std::hash<vector<int>> { size_t operator()(const vector<int>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<int>> transTable;
@@ -19,7 +19,7 @@ bool crossesActive(link& l){
 	return false;
 }
 void solve() {
-	if (nodesFull == nodes.size()) {
+	if (!nodesLeft) {
 		for (auto& l : links)
 			if (l.num)
 				std::cout << l.a->x << ',' << l.a->y << ',' << l.b->x << ',' << l.b->y << ',' << l.num << ", ";
@@ -29,18 +29,18 @@ void solve() {
 	}
 	for (int numLinks = 3; --numLinks;) {
 		for (auto& l : links) {
-			if (l.num || l.a->t + numLinks > l.a->num || l.b->t + numLinks > l.b->num || crossesActive(l))
+			if (l.num || numLinks > l.a->num || numLinks > l.b->num || crossesActive(l))
 				continue;
 			l.num = numLinks;
 			hash ^= l.bitStrings[numLinks - 1];
 			if (transTable.emplace(getLinkAmounts()).second) {
-				l.a->t += numLinks;//todo remove node::t, decrease node::num instead
-				l.b->t += numLinks;
-				nodesFull += (l.a->t == l.a->num) + (l.b->t == l.b->num);
+				l.a->num -= numLinks;
+				l.b->num -= numLinks;
+				nodesLeft -= (l.a->num == 0) + (l.b->num == 0);
 				solve();
-				nodesFull -= (l.a->t == l.a->num) + (l.b->t == l.b->num);
-				l.b->t -= numLinks;
-				l.a->t -= numLinks;
+				nodesLeft += (l.a->num == 0) + (l.b->num == 0);
+				l.b->num += numLinks;
+				l.a->num += numLinks;
 			}
 			hash ^= l.bitStrings[numLinks - 1];
 			l.num = 0;
@@ -66,6 +66,7 @@ int main() {
 				if (line[x] != '.') {
 					nodes.emplace_back(line[x] - '0', x, y);
 					grid[x][y] = &nodes.back();
+					++nodesLeft;
 				}
 			}
 		}
@@ -198,6 +199,7 @@ void removeNode(node* n) {
 	}
 	*n = std::move(nodes.back());
 	nodes.pop_back();
+	--nodesLeft;
 }
 /*void removeLink(link* l){
 	for (int i = 0; i < 4; ++i)
