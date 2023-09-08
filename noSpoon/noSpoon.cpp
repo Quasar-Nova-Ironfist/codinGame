@@ -171,6 +171,8 @@ int main() {
 			anyFound = false;
 			goto moveToSolved_Start;
 		}
+		nodes.shrink_to_fit();
+		links.shrink_to_fit();
 	}//collapse required links
 	//solve();
 }
