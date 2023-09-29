@@ -8,7 +8,7 @@ using fint = int_fast8_t;
 std::vector<link> links;
 size_t hash = 0;
 std::vector<node> nodes;
-fint nodesLeft = 0;
+fint nodesLeft;
 
 template<> struct std::hash<vector<fint>> { size_t operator()(const vector<fint>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<fint>> transTable;
@@ -38,12 +38,12 @@ void solve() {
 				l.a->num -= numLinks;
 				l.b->num -= numLinks;
 				nodesLeft -= (l.a->num == 0) + (l.b->num == 0);
-				for (fint i = 0; i < l.crossCount; ++i) {
+				for (fint i = 0; i < l.crosses.size(); ++i) {
 					crossesActiveBefore[i] = l.crosses[i]->crossesActive;
 					l.crosses[i]->crossesActive = true;
 				}
 				solve();
-				for (fint i = 0; i < l.crossCount; ++i)
+				for (fint i = 0; i < l.crosses.size(); ++i)
 					l.crosses[i]->crossesActive = crossesActiveBefore[i];
 				nodesLeft += (l.a->num == 0) + (l.b->num == 0);
 				l.b->num += numLinks;
@@ -73,7 +73,6 @@ int main() {
 				if (line[x] != '.') {
 					nodes.emplace_back(line[x] - '0', x, y);
 					grid[x][y] = &nodes.back();
-					++nodesLeft;
 				}
 			}
 		}
@@ -115,18 +114,20 @@ int main() {
 					continue;
 				if (l0Vert) {
 					if (l0.a->y < l1.a->y && l0.b->y > l1.a->y && l1.a->x < l0.a->x && l1.b->x > l1.a->x) {
-						l0.crosses[l0.crossCount++] = &l1;
+						l0.crosses.push_back(&l1);
 						cout << "l0 crosses l1; " << l0.a->x << ',' << l0.a->y << ' ' << l0.b->x << ',' << l0.b->y << " : " << l1.a->x << ',' << l1.a->y << ' ' << l1.b->x << ',' << l1.b->y << endl;
-					}//RIF^				
+					}
 				}
 				else {
 					if (l1.a->y < l0.a->y && l1.b->y > l0.a->y && l0.a->x < l1.a->x && l0.b->x > l0.a->x) {
-						l0.crosses[l0.crossCount++] = &l1;
+						l0.crosses.push_back(&l1);
 						cout << "l0 crosses l1; " << l0.a->x << ',' << l0.a->y << ' ' << l0.b->x << ',' << l0.b->y << " : " << l1.a->x << ',' << l1.a->y << ' ' << l1.b->x << ',' << l1.b->y << endl;
 					}
 				}
 			}
 		}
+		for (auto& l : links)
+			l.crosses.shrink_to_fit();
 	}//establish lists of crossing links
 
 	return 0;
@@ -137,7 +138,7 @@ int main() {
 		for (auto& n : nodes) {
 			if (n.linkCount == 1) {
 				link* l = n.links[0];
-				while (l->crossCount)
+				while (!l->crosses.empty())
 					removeLink(l->crosses[0]);
 				node* oNode = l->getOther(&n);
 				cout << n.x << ',' << n.y << ',' << oNode->x << ',' << oNode->y << ',' << n.num << ", ";
@@ -157,7 +158,7 @@ int main() {
 			if (n.num == linksAvailableSum) {
 				for (fint i = 0; i < n.linkCount; ++i) {
 					link* l = n.links[i];
-					while (l->crossCount)
+					while (!l->crosses.empty())
 						removeLink(l->crosses[0]);
 					node* oNode = l->getOther(&n);
 					fint linkAmount = oNode->num;
@@ -177,10 +178,11 @@ int main() {
 			anyFound = false;
 			goto moveToSolved_Start;
 		}
-		nodes.shrink_to_fit();
-		links.shrink_to_fit();
 	}//collapse required links
-	//solve();
+	nodes.shrink_to_fit();
+	links.shrink_to_fit();
+	nodesLeft = nodes.size();
+	 //solve();
 }
 void removeNode(node* n) {
 	while (n->linkCount)
@@ -194,18 +196,15 @@ void removeNode(node* n) {
 	}
 	*n = std::move(nodes.back());
 	nodes.pop_back();
-	--nodesLeft;
 }
 void removeLink(link* l){
 	{//update all pointers to links.back() to instead point at l
-		for (fint j = 0; j < links.back().crossCount; ++j) {
-			link* l2 = links.back().crosses[j];
-			for (fint k = 0; k < l2->crossCount; ++k)
-				if (l2->crosses[k] == &links.back()) {
-					l2->crosses[k] = l;
+		for (auto& l2 : links.back().crosses)
+			for (fint i = 0; i < l2->crosses.size(); ++i)
+				if (l2->crosses[i] == &links.back()) {
+					l2->crosses[i] = l;
 					break;
 				}
-		}
 		for (fint j = 0; j < 4; ++j)
 			if (links.back().a->links[j] == &links.back()) {
 				links.back().a->links[j] = l;
@@ -218,27 +217,20 @@ void removeLink(link* l){
 			}
 	}//update all pointers to links.back() to instead point at l
 	{//set pointers to l to null, except for those changed above
-		for (fint j = 0; j < l->crossCount; ++j) {
-			link* l2 = l->crosses[j];
-			for (fint k = 0; k < l2->crossCount; ++k)
-				if (l2->crosses[k] == l) {
-					//l2->crosses[k] = l2->crosses[l2->crossCount];
-					//l2->crosses[l2->crossCount--] = nullptr;
-					l2->crosses[k] = l2->crosses[l2->crossCount--];
+		for (auto& l2 : l->crosses)
+			for (fint i = 0; i < l2->crosses.size(); ++i)
+				if (l2->crosses[i] == l) {
+					l2->crosses[i] = l2->crosses.back();
+					l2->crosses.pop_back();
 					break;
 				}
-		}
 		for (fint j = 0; j < 4; ++j)
 			if (l->a->links[j] == l) {
-				//l->a->links[j] = l->a->links[l->a->linkCount];
-				//l->a->links[l->a->linkCount--] = nullptr;
 				l->a->links[j] = l->a->links[l->a->linkCount--];
 				break;
 			}
 		for (fint j = 0; j < 4; ++j)
 			if (l->b->links[j] == l) {
-				//l->b->links[j] = l->b->links[l->b->linkCount];
-				//l->b->links[l->b->linkCount--] = nullptr;
 				l->b->links[j] = l->b->links[l->b->linkCount--];
 				break;
 			}
