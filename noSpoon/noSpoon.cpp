@@ -13,12 +13,6 @@ fint nodesLeft = 0;
 template<> struct std::hash<vector<fint>> { size_t operator()(const vector<fint>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<fint>> transTable;
 
-bool link::crossesActive(){
-	for (fint i = 0; i < crossCount; ++i)
-		if (crosses[i]->num)
-			return true;
-	return false;
-}
 link::link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) {
 	bitStrings[0] = b0;
 	bitStrings[1] = b1;
@@ -34,8 +28,9 @@ void solve() {
 			std::cin >> hash;
 	}
 	for (fint numLinks = 3; --numLinks;) {
+		bool crossesActiveBefore[15];
 		for (auto& l : links) {
-			if (l.num || numLinks > l.a->num || numLinks > l.b->num || l.crossesActive())
+			if (l.num || l.crossesActive || numLinks > l.a->num || numLinks > l.b->num)
 				continue;
 			l.num = numLinks;
 			hash ^= l.bitStrings[numLinks - 1];
@@ -43,7 +38,13 @@ void solve() {
 				l.a->num -= numLinks;
 				l.b->num -= numLinks;
 				nodesLeft -= (l.a->num == 0) + (l.b->num == 0);
+				for (fint i = 0; i < l.crossCount; ++i) {
+					crossesActiveBefore[i] = l.crosses[i]->crossesActive;
+					l.crosses[i]->crossesActive = true;
+				}
 				solve();
+				for (fint i = 0; i < l.crossCount; ++i)
+					l.crosses[i]->crossesActive = crossesActiveBefore[i];
 				nodesLeft += (l.a->num == 0) + (l.b->num == 0);
 				l.b->num += numLinks;
 				l.a->num += numLinks;

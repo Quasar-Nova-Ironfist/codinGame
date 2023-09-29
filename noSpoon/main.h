@@ -13,11 +13,10 @@ struct link {
 	int_fast8_t num = 0, crossCount = 0;
 	size_t bitStrings[2];
 	link* crosses[15] = {};
+	bool crossesActive = false;
 	link(node* a_, node* b_, size_t b0, size_t b1);
 	node* getOther(node* n);
-	bool crossesActive();
 };
-bool crossesActive(link& l);
 std::vector<int_fast8_t> getLinkAmounts();
 void solve();
 void removeNode(node* n);
