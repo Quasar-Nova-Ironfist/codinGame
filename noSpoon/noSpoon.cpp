@@ -13,12 +13,17 @@ fint nodesLeft = 0;
 template<> struct std::hash<vector<fint>> { size_t operator()(const vector<fint>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<fint>> transTable;
 
-bool crossesActive(link& l){
-	for (fint i = 0; i < l.crossCount; ++i)
-		if (l.crosses[i]->num)
+bool link::crossesActive(){
+	for (fint i = 0; i < crossCount; ++i)
+		if (crosses[i]->num)
 			return true;
 	return false;
 }
+link::link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) {
+	bitStrings[0] = b0;
+	bitStrings[1] = b1;
+}
+node* link::getOther(node* n) { return a == n ? b : a; }
 void solve() {
 	if (!nodesLeft) {
 		for (auto& l : links)
@@ -30,7 +35,7 @@ void solve() {
 	}
 	for (fint numLinks = 3; --numLinks;) {
 		for (auto& l : links) {
-			if (l.num || numLinks > l.a->num || numLinks > l.b->num || crossesActive(l))
+			if (l.num || numLinks > l.a->num || numLinks > l.b->num || l.crossesActive())
 				continue;
 			l.num = numLinks;
 			hash ^= l.bitStrings[numLinks - 1];
@@ -216,21 +221,24 @@ void removeLink(link* l){
 			link* l2 = l->crosses[j];
 			for (fint k = 0; k < l2->crossCount; ++k)
 				if (l2->crosses[k] == l) {
-					l2->crosses[k] = l2->crosses[l2->crossCount];
-					l2->crosses[l2->crossCount--] = nullptr;
+					//l2->crosses[k] = l2->crosses[l2->crossCount];
+					//l2->crosses[l2->crossCount--] = nullptr;
+					l2->crosses[k] = l2->crosses[l2->crossCount--];
 					break;
 				}
 		}
 		for (fint j = 0; j < 4; ++j)
 			if (l->a->links[j] == l) {
-				l->a->links[j] = l->a->links[l->a->linkCount];
-				l->a->links[l->a->linkCount--] = nullptr;
+				//l->a->links[j] = l->a->links[l->a->linkCount];
+				//l->a->links[l->a->linkCount--] = nullptr;
+				l->a->links[j] = l->a->links[l->a->linkCount--];
 				break;
 			}
 		for (fint j = 0; j < 4; ++j)
 			if (l->b->links[j] == l) {
-				l->b->links[j] = l->b->links[l->b->linkCount];
-				l->b->links[l->b->linkCount--] = nullptr;
+				//l->b->links[j] = l->b->links[l->b->linkCount];
+				//l->b->links[l->b->linkCount--] = nullptr;
+				l->b->links[j] = l->b->links[l->b->linkCount--];
 				break;
 			}
 	}//set pointers to l to null, except for those changed above
