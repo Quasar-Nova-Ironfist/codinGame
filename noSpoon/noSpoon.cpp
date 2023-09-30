@@ -63,6 +63,20 @@ int main() {
 		fint width, height;
 		std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
 		width -= '0'; height -= '0';//convert from ascii to int
+		nodes.reserve(width * height);
+
+		vector<std::string> grid;
+		grid.reserve(height);
+		for (fint y = 0; y < height; ++y) {
+			std::string line;
+			getline(std::cin, line);
+			for (fint x = 0; x < width; ++x)
+				if (line[x] != '.') 
+					nodes.emplace_back(line[x] - '0', x, y);
+			grid.push_back(line);
+		}
+		
+
 		vector<vector<node*>> grid(width, vector<node*>(height, nullptr));
 		for (fint y = 0; y < height; ++y) {
 			std::string line;
