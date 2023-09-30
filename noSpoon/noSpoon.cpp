@@ -9,14 +9,11 @@ std::vector<link> links;
 size_t hash = 0;
 std::vector<node> nodes;
 fint nodesLeft;
-
 template<> struct std::hash<vector<fint>> { size_t operator()(const vector<fint>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<fint>> transTable;
 
-link::link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) {
-	bitStrings[0] = b0;
-	bitStrings[1] = b1;
-}
+node::node(int n_, int x_, int y_) : num(n_), x(x_), y(y_) {}
+link::link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) { bitStrings[0] = b0; bitStrings[1] = b1; }
 node* link::getOther(node* n) { return a == n ? b : a; }
 void solve() {
 	if (!nodesLeft) {
@@ -27,8 +24,8 @@ void solve() {
 		while (true)//prevent accidental exit
 			std::cin >> hash;
 	}
+	bool crossesActiveBefore[15];
 	for (fint numLinks = 3; --numLinks;) {
-		bool crossesActiveBefore[15];
 		for (auto& l : links) {
 			if (l.num || l.crossesActive || numLinks > l.a->num || numLinks > l.b->num)
 				continue;
@@ -65,7 +62,8 @@ int main() {
 	{//create links
 		fint width, height;
 		std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
-		vector<vector<node*>> grid(height, vector<node*>(width, nullptr));
+		width -= '0'; height -= '0';//convert from ascii to int
+		vector<vector<node*>> grid(width, vector<node*>(height, nullptr));
 		for (fint y = 0; y < height; ++y) {
 			std::string line;
 			getline(std::cin, line);
