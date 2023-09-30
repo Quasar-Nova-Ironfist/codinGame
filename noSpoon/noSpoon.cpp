@@ -63,8 +63,7 @@ int main() {
 		fint width, height;
 		std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
 		width -= '0'; height -= '0';//convert from ascii to int
-		nodes.reserve(width * height);
-
+		
 		vector<std::string> grid;
 		grid.reserve(height);
 		for (fint y = 0; y < height; ++y) {
@@ -75,7 +74,11 @@ int main() {
 					nodes.emplace_back(line[x] - '0', x, y);
 			grid.push_back(line);
 		}
-		
+		nodes.shrink_to_fit();
+		links.reserve(nodes.size());
+		std::mt19937_64 e2;
+		std::uniform_int_distribution<size_t> distr(1, size_t(-2));
+				
 
 		vector<vector<node*>> grid(width, vector<node*>(height, nullptr));
 		for (fint y = 0; y < height; ++y) {
@@ -88,10 +91,6 @@ int main() {
 				}
 			}
 		}
-		nodes.shrink_to_fit();
-		links.reserve(nodes.size());
-		std::mt19937_64 e2;
-		std::uniform_int_distribution<size_t> distr(1, size_t(-2));
 		for (auto& n : nodes) {
 			for (fint nextX = n.x + 1; nextX < grid.size(); ++nextX) {
 				if (grid[nextX][n.y] != nullptr) {
