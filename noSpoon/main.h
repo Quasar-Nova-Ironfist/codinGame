@@ -6,7 +6,7 @@ struct link;
 struct node {
 	int_fast8_t num, x, y, linkCount = 0;
 	link* links[4];
-	node(int n_, int x_, int y_);
+	node(int_fast8_t n_, int_fast8_t x_, int_fast8_t y_);
 };
 struct link {
 	node* a, * b;
