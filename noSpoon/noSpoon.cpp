@@ -64,6 +64,7 @@ int main() {
 		std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
 		width -= '0'; height -= '0';//convert from ascii to int
 		vector<vector<node*>> grid(width, vector<node*>(height, nullptr));
+		nodes.reserve(width * height);
 		for (fint y = 0; y < height; ++y) {
 			std::string line;
 			getline(std::cin, line);
@@ -74,8 +75,7 @@ int main() {
 				}
 			}
 		}
-		nodes.shrink_to_fit();
-		links.reserve(nodes.size());
+		links.reserve(nodes.size() * 4);
 		std::mt19937_64 e2;
 		std::uniform_int_distribution<size_t> distr(1, size_t(-2));
 		for (auto& n : nodes) {
@@ -100,7 +100,6 @@ int main() {
 				}
 			}
 		}
-		links.shrink_to_fit();
 	}//create links
 	{//establish lists of crossing links; o(n^2)
 		for (auto& l0 : links) {
@@ -124,8 +123,6 @@ int main() {
 				}
 			}
 		}
-		for (auto& l : links)
-			l.crosses.shrink_to_fit();
 	}//establish lists of crossing links
 
 	return 0;
@@ -177,8 +174,6 @@ int main() {
 			goto moveToSolved_Start;
 		}
 	}//collapse required links
-	nodes.shrink_to_fit();
-	links.shrink_to_fit();
 	nodesLeft = nodes.size();
 	 //solve();
 }
