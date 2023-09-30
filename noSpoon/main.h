@@ -21,3 +21,7 @@ std::vector<int_fast8_t> getLinkAmounts();
 void solve();
 void removeNode(node* n);
 void removeLink(link* l);
+std::ostream& operator<<(std::ostream& os, const node& n);
+void createLinks();
+void listCrosses();
+void collapseRequired();

@@ -2,7 +2,7 @@
 #include <string>
 #include <random>
 #include <parallel_hashmap/phmap.h>
-using std::cout; using std::endl; using std::vector;
+using std::cout; using std::vector;
 using fint = int_fast8_t;
 
 std::vector<link> links;
@@ -12,6 +12,10 @@ fint nodesLeft;
 template<> struct std::hash<vector<fint>> { size_t operator()(const vector<fint>& h) { return ::hash; } };
 phmap::parallel_flat_hash_set<vector<fint>> transTable;
 
+std::ostream& operator<<(std::ostream& os, const node& n) {
+	os << static_cast<int>(n.x) << ',' << static_cast<int>(n.y);
+	return os;
+}
 node::node(int n_, int x_, int y_) : num(n_), x(x_), y(y_) {}
 link::link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) { bitStrings[0] = b0; bitStrings[1] = b1; }
 node* link::getOther(node* n) { return a == n ? b : a; }
@@ -19,12 +23,12 @@ void solve() {
 	if (!nodesLeft) {
 		for (auto& l : links)
 			if (l.num)
-				std::cout << l.a->x << ',' << l.a->y << ',' << l.b->x << ',' << l.b->y << ',' << l.num << ", ";
-		std::cout << std::endl;
+				cout << *l.a << ',' << *l.b << ',' << static_cast<int>(l.num) << ", ";
+		cout << std::endl;
 		while (true)//prevent accidental exit
 			std::cin >> hash;
 	}
-	bool crossesActiveBefore[15];
+	bool crossesActiveBefore[15]{};
 	for (fint numLinks = 3; --numLinks;) {
 		for (auto& l : links) {
 			if (l.num || l.crossesActive || numLinks > l.a->num || numLinks > l.b->num)
@@ -58,122 +62,114 @@ vector<fint> getLinkAmounts() {
 		res.push_back(l.num);
 	return res;
 }
-int main() {
-	{//create links
-		fint width, height;
-		std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
-		width -= '0'; height -= '0';//convert from ascii to int
-		vector<vector<node*>> grid(width, vector<node*>(height, nullptr));
-		nodes.reserve(width * height);
-		for (fint y = 0; y < height; ++y) {
-			std::string line;
-			getline(std::cin, line);
-			for (fint x = 0; x < width; ++x) {
-				if (line[x] != '.') {
-					nodes.emplace_back(line[x] - '0', x, y);
-					grid[x][y] = &nodes.back();
-				}
+void createLinks(){
+	int_fast16_t width, height;
+	std::cin >> width; std::cin.ignore(); std::cin >> height; std::cin.ignore();
+	vector<vector<node*>> grid(width, vector<node*>(height, nullptr));
+	nodes.reserve(width * height);
+	for (fint y = 0; y < height; ++y) {
+		std::string line;
+		getline(std::cin, line);
+		for (fint x = 0; x < width; ++x) {
+			if (line[x] != '.') {
+				nodes.emplace_back(line[x] - '0', x, y);
+				grid[x][y] = &nodes.back();
 			}
 		}
-		links.reserve(nodes.size() * 4);
-		std::mt19937_64 e2;
-		std::uniform_int_distribution<size_t> distr(1, size_t(-2));
-		for (auto& n : nodes) {
-			for (fint nextX = n.x + 1; nextX < grid.size(); ++nextX) {
-				if (grid[nextX][n.y] != nullptr) {
-					node* nPtr = grid[nextX][n.y];
-					if (n.num != 1 || nPtr->num != 1) {
-						links.emplace_back(&n, nPtr, distr(e2), distr(e2));
-						n.links[n.linkCount++] = &links.back();
-						nPtr->links[nPtr->linkCount++] = &links.back();
-					}
-					break;
-				}
-			}
-			for (fint nextY = n.y + 1; nextY < grid[0].size(); ++nextY) {
-				if (grid[n.x][nextY] != nullptr) {
-					node* nPtr = grid[n.x][nextY];
+	}
+	links.reserve(nodes.size() * 4);
+	std::mt19937_64 e2;
+	std::uniform_int_distribution<size_t> distr(1, size_t(-2));
+	for (auto& n : nodes) {
+		for (fint nextX = n.x + 1; nextX < grid.size(); ++nextX) {
+			if (grid[nextX][n.y] != nullptr) {
+				node* nPtr = grid[nextX][n.y];
+				if (n.num != 1 || nPtr->num != 1) {
 					links.emplace_back(&n, nPtr, distr(e2), distr(e2));
 					n.links[n.linkCount++] = &links.back();
 					nPtr->links[nPtr->linkCount++] = &links.back();
-					break;
 				}
+				break;
 			}
 		}
-	}//create links
-	{//establish lists of crossing links; o(n^2)
-		for (auto& l0 : links) {
-			for (auto& l1 : links) {
-				if (&l0 == &l1)
-					continue;
-				bool l0Vert = l0.a->x == l0.b->x;
-				if (l0Vert == (l1.a->x == l1.b->x))
-					continue;
-				if (l0Vert) {
-					if (l0.a->y < l1.a->y && l0.b->y > l1.a->y && l1.a->x < l0.a->x && l1.b->x > l1.a->x) {
-						l0.crosses.push_back(&l1);
-						cout << "l0 crosses l1; " << l0.a->x << ',' << l0.a->y << ' ' << l0.b->x << ',' << l0.b->y << " : " << l1.a->x << ',' << l1.a->y << ' ' << l1.b->x << ',' << l1.b->y << endl;
-					}
-				}
-				else {
-					if (l1.a->y < l0.a->y && l1.b->y > l0.a->y && l0.a->x < l1.a->x && l0.b->x > l0.a->x) {
-						l0.crosses.push_back(&l1);
-						cout << "l0 crosses l1; " << l0.a->x << ',' << l0.a->y << ' ' << l0.b->x << ',' << l0.b->y << " : " << l1.a->x << ',' << l1.a->y << ' ' << l1.b->x << ',' << l1.b->y << endl;
-					}
-				}
+		for (fint nextY = n.y + 1; nextY < grid[0].size(); ++nextY) {
+			if (grid[n.x][nextY] != nullptr) {
+				node* nPtr = grid[n.x][nextY];
+				links.emplace_back(&n, nPtr, distr(e2), distr(e2));
+				n.links[n.linkCount++] = &links.back();
+				nPtr->links[nPtr->linkCount++] = &links.back();
+				break;
 			}
 		}
-	}//establish lists of crossing links
-
-	return 0;
-
-	{//collapse required links
-		bool anyFound = false;
-	moveToSolved_Start:
-		for (auto& n : nodes) {
-			if (n.linkCount == 1) {
-				link* l = n.links[0];
+	}
+}
+void listCrosses() {//FIXME
+	for (auto& l0 : links) {//establish lists of crossing links
+		if (l0.a->y == l0.b->y)//continue on horizontal
+			continue;
+		for (auto& l1 : links) {
+			if (l1.a->x == l1.b->x)//continue on vertical
+				continue;
+			//l0 vertical, l1 horizontal
+			if ((l0.a->y < l1.a->y) && (l0.b->y > l1.a->y) && (l1.a->x < l0.a->x) && (l1.b->x > l0.a->x)) {
+				l0.crosses.push_back(&l1);
+				l1.crosses.push_back(&l0);
+				cout << &l0 - &links[0] << " : " << &l1 - &links[0] << "; " << *l0.a << ' ' << *l0.b << " : " << *l1.a << ' ' << *l1.b << '\n';
+			}
+		}
+	}
+}
+void collapseRequired() {
+	bool anyFound = false;
+moveToSolved_Start:
+	for (auto& n : nodes) {
+		if (n.linkCount == 1) {
+			link* l = n.links[0];
+			while (!l->crosses.empty())
+				removeLink(l->crosses[0]);
+			node* oNode = l->getOther(&n);
+			cout << n << ',' << *oNode << ',' << static_cast<int>(n.num) << ", ";
+			if (!(oNode->num -= n.num))
+				removeNode(oNode);
+			removeNode(&n);
+			anyFound = true;
+			continue;
+		}
+		fint linksAvailableSum = 0;
+		for (fint i = 0; i < n.linkCount; ++i) {
+			fint linkAmount = n.links[i]->getOther(&n)->num;
+			if (linkAmount > 2)
+				linkAmount = 2;
+			linksAvailableSum += linkAmount;
+		}
+		if (n.num == linksAvailableSum) {
+			for (fint i = 0; i < n.linkCount; ++i) {
+				link* l = n.links[i];
 				while (!l->crosses.empty())
 					removeLink(l->crosses[0]);
 				node* oNode = l->getOther(&n);
-				cout << n.x << ',' << n.y << ',' << oNode->x << ',' << oNode->y << ',' << n.num << ", ";
-				if (!(oNode->num -= n.num))
-					removeNode(oNode);
-				removeNode(&n);
-				anyFound = true;
-				continue;
-			}
-			fint linksAvailableSum = 0;
-			for (fint i = 0; i < n.linkCount; ++i) {
-				fint linkAmount = n.links[i]->getOther(&n)->num;
+				fint linkAmount = oNode->num;
 				if (linkAmount > 2)
 					linkAmount = 2;
-				linksAvailableSum += linkAmount;
-			}
-			if (n.num == linksAvailableSum) {
-				for (fint i = 0; i < n.linkCount; ++i) {
-					link* l = n.links[i];
-					while (!l->crosses.empty())
-						removeLink(l->crosses[0]);
-					node* oNode = l->getOther(&n);
-					fint linkAmount = oNode->num;
-					if (linkAmount > 2)
-						linkAmount = 2;
-					cout << n.x << ',' << n.y << ',' << oNode->x << ',' << oNode->y << ',' << linkAmount << ", ";
-					if (!(oNode->num -= linkAmount)) {
-						removeNode(oNode);
-						--i;
-					}
+				cout << n << ',' << *oNode << ',' << static_cast<int>(linkAmount) << ", ";
+				if (!(oNode->num -= linkAmount)) {
+					removeNode(oNode);
+					--i;
 				}
-				removeNode(&n);
-				anyFound = true;
 			}
+			removeNode(&n);
+			anyFound = true;
 		}
-		if (anyFound) {
-			anyFound = false;
-			goto moveToSolved_Start;
-		}
-	}//collapse required links
+	}
+	if (anyFound) {
+		anyFound = false;
+		goto moveToSolved_Start;
+	}
+}
+int main() {
+	createLinks();
+	listCrosses();
+	collapseRequired();
 	nodesLeft = nodes.size();
 	 //solve();
 }
