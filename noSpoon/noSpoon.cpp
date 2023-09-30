@@ -118,6 +118,7 @@ void listCrosses() {//FIXME
 			}
 		}
 	}
+	cout << '\n';
 }
 void collapseRequired() {
 	bool anyFound = false;
