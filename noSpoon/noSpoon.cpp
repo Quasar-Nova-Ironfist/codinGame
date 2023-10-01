@@ -2,6 +2,7 @@
 #include <string>
 #include <random>
 #include <parallel_hashmap/phmap.h>
+#include <Windows.h>
 using std::cout; using std::vector;
 using fint = int_fast8_t;
 
@@ -25,8 +26,8 @@ void solve() {
 			if (l.num)
 				cout << *l.a << ',' << *l.b << ',' << static_cast<int>(l.num) << ", ";
 		cout << std::endl;
-		while (true)//prevent accidental exit
-			std::cin >> hash;
+		while (true) 
+			Sleep(999999999);
 	}
 	bool crossesActiveBefore[15]{};
 	for (fint numLinks = 3; --numLinks;) {
