@@ -121,9 +121,8 @@ void listCrosses() {//FIXME
 	cout << '\n';
 }
 void collapseRequired() {
-	bool anyFound = false;
-moveToSolved_Start:
-	for (auto& n : nodes) {
+	for (fint nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
+		node& n = nodes[nodeIndex];
 		if (n.linkCount == 1) {
 			link* l = n.links[0];
 			while (!l->crosses.empty())
@@ -133,7 +132,7 @@ moveToSolved_Start:
 			if (!(oNode->num -= n.num))
 				removeNode(oNode);
 			removeNode(&n);
-			anyFound = true;
+			nodeIndex = -1;
 			continue;
 		}
 		fint linksAvailableSum = 0;
@@ -143,9 +142,11 @@ moveToSolved_Start:
 				linkAmount = 2;
 			linksAvailableSum += linkAmount;
 		}
-		if (n.num == linksAvailableSum) {
+		if (n.num == linksAvailableSum) {//FIXME
 			for (fint i = 0; i < n.linkCount; ++i) {
 				link* l = n.links[i];
+				if (l->getOther(&n)->num < 0)
+					continue;
 				while (!l->crosses.empty())
 					removeLink(l->crosses[0]);
 				node* oNode = l->getOther(&n);
@@ -153,18 +154,16 @@ moveToSolved_Start:
 				if (linkAmount > 2)
 					linkAmount = 2;
 				cout << n << ',' << *oNode << ',' << static_cast<int>(linkAmount) << ", ";
-				if (!(oNode->num -= linkAmount)) {
+				if (!(oNode->num = linkAmount - oNode->num)) {
 					removeNode(oNode);
-					--i;
+					i = -1;
 				}
 			}
+			for (fint i = 0; i < n.linkCount; ++i)
+				n.links[i]->getOther(&n)->num *= -1;
 			removeNode(&n);
-			anyFound = true;
+			nodeIndex = -1;
 		}
-	}
-	if (anyFound) {
-		anyFound = false;
-		goto moveToSolved_Start;
 	}
 }
 int main() {
@@ -172,7 +171,7 @@ int main() {
 	listCrosses();
 	collapseRequired();
 	nodesLeft = nodes.size();
-	 //solve();
+	solve();
 }
 void removeNode(node* n) {
 	while (n->linkCount)
@@ -189,39 +188,39 @@ void removeNode(node* n) {
 }
 void removeLink(link* l){
 	{//update all pointers to links.back() to instead point at l
-		for (auto& l2 : links.back().crosses)
+		for (link* l2 : links.back().crosses)
 			for (fint i = 0; i < l2->crosses.size(); ++i)
 				if (l2->crosses[i] == &links.back()) {
 					l2->crosses[i] = l;
 					break;
 				}
-		for (fint j = 0; j < 4; ++j)
-			if (links.back().a->links[j] == &links.back()) {
-				links.back().a->links[j] = l;
+		for (fint i = 0; i < 4; ++i)
+			if (links.back().a->links[i] == &links.back()) {
+				links.back().a->links[i] = l;
 				break;
 			}
-		for (fint j = 0; j < 4; ++j)
-			if (links.back().b->links[j] == &links.back()) {
-				links.back().b->links[j] = l;
+		for (fint i = 0; i < 4; ++i)
+			if (links.back().b->links[i] == &links.back()) {
+				links.back().b->links[i] = l;
 				break;
 			}
 	}//update all pointers to links.back() to instead point at l
 	{//set pointers to l to null, except for those changed above
-		for (auto& l2 : l->crosses)
+		for (link* l2 : l->crosses)
 			for (fint i = 0; i < l2->crosses.size(); ++i)
 				if (l2->crosses[i] == l) {
 					l2->crosses[i] = l2->crosses.back();
 					l2->crosses.pop_back();
 					break;
 				}
-		for (fint j = 0; j < 4; ++j)
-			if (l->a->links[j] == l) {
-				l->a->links[j] = l->a->links[l->a->linkCount--];
+		for (fint i = 0; i < 4; ++i)
+			if (l->a->links[i] == l) {
+				l->a->links[i] = l->a->links[--l->a->linkCount];
 				break;
 			}
-		for (fint j = 0; j < 4; ++j)
-			if (l->b->links[j] == l) {
-				l->b->links[j] = l->b->links[l->b->linkCount--];
+		for (fint i = 0; i < 4; ++i)
+			if (l->b->links[i] == l) {
+				l->b->links[i] = l->b->links[--l->b->linkCount];
 				break;
 			}
 	}//set pointers to l to null, except for those changed above
