@@ -1,24 +1,19 @@
 #include "main.h"
 #include <string>
-#include <random>
-#include <parallel_hashmap/phmap.h>
 #include <Windows.h>
 using std::cout; using std::vector;
 using fint = int_fast8_t;
 
 std::vector<link> links;
-size_t hash = 0;
 std::vector<node> nodes;
 fint nodesLeft;
-template<> struct std::hash<vector<fint>> { size_t operator()(const vector<fint>& h) { return ::hash; } };
-phmap::parallel_flat_hash_set<vector<fint>> transTable;
 
 std::ostream& operator<<(std::ostream& os, const node& n) {
 	os << static_cast<int>(n.x) << ',' << static_cast<int>(n.y);
 	return os;
 }
 node::node(int n_, int x_, int y_) : num(n_), x(x_), y(y_) {}
-link::link(node* a_, node* b_, size_t b0, size_t b1) : a(a_), b(b_) { bitStrings[0] = b0; bitStrings[1] = b1; }
+link::link(node* a_, node* b_) : a(a_), b(b_) {}
 node* link::getOther(node* n) { return a == n ? b : a; }
 void solve() {
 	if (!nodesLeft) {
@@ -29,29 +24,25 @@ void solve() {
 		while (true) 
 			Sleep(999999999);
 	}
-	bool crossesActiveBefore[15]{};
 	for (fint numLinks = 3; --numLinks;) {
 		for (auto& l : links) {
 			if (l.num || l.crossesActive || numLinks > l.a->num || numLinks > l.b->num)
 				continue;
 			l.num = numLinks;
-			hash ^= l.bitStrings[numLinks - 1];
-			if (transTable.emplace(getLinkAmounts()).second) {
-				l.a->num -= numLinks;
-				l.b->num -= numLinks;
-				nodesLeft -= (l.a->num == 0) + (l.b->num == 0);
-				for (fint i = 0; i < l.crosses.size(); ++i) {
-					crossesActiveBefore[i] = l.crosses[i]->crossesActive;
-					l.crosses[i]->crossesActive = true;
-				}
-				solve();
-				for (fint i = 0; i < l.crosses.size(); ++i)
-					l.crosses[i]->crossesActive = crossesActiveBefore[i];
-				nodesLeft += (l.a->num == 0) + (l.b->num == 0);
-				l.b->num += numLinks;
-				l.a->num += numLinks;
+			l.a->num -= numLinks;
+			l.b->num -= numLinks;
+			nodesLeft -= (l.a->num == 0) + (l.b->num == 0);
+			bool crossesActiveBefore[15]{};
+			for (fint i = 0; i < l.crosses.size(); ++i) {
+				crossesActiveBefore[i] = l.crosses[i]->crossesActive;
+				l.crosses[i]->crossesActive = true;
 			}
-			hash ^= l.bitStrings[numLinks - 1];
+			solve();
+			for (fint i = 0; i < l.crosses.size(); ++i)
+				l.crosses[i]->crossesActive = crossesActiveBefore[i];
+			nodesLeft += (l.a->num == 0) + (l.b->num == 0);
+			l.b->num += numLinks;
+			l.a->num += numLinks;
 			l.num = 0;
 		}
 	}
@@ -79,14 +70,12 @@ void createLinks(){
 		}
 	}
 	links.reserve(nodes.size() * 4);
-	std::mt19937_64 e2;
-	std::uniform_int_distribution<size_t> distr(1, size_t(-2));
 	for (auto& n : nodes) {
 		for (fint nextX = n.x + 1; nextX < grid.size(); ++nextX) {
 			if (grid[nextX][n.y] != nullptr) {
 				node* nPtr = grid[nextX][n.y];
 				if (n.num != 1 || nPtr->num != 1) {
-					links.emplace_back(&n, nPtr, distr(e2), distr(e2));
+					links.emplace_back(&n, nPtr);
 					n.links[n.linkCount++] = &links.back();
 					nPtr->links[nPtr->linkCount++] = &links.back();
 				}
@@ -96,7 +85,7 @@ void createLinks(){
 		for (fint nextY = n.y + 1; nextY < grid[0].size(); ++nextY) {
 			if (grid[n.x][nextY] != nullptr) {
 				node* nPtr = grid[n.x][nextY];
-				links.emplace_back(&n, nPtr, distr(e2), distr(e2));
+				links.emplace_back(&n, nPtr);
 				n.links[n.linkCount++] = &links.back();
 				nPtr->links[nPtr->linkCount++] = &links.back();
 				break;

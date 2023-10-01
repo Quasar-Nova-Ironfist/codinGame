@@ -11,10 +11,9 @@ struct node {
 struct link {
 	node* a, * b;
 	int_fast8_t num = 0;
-	size_t bitStrings[2];
 	std::vector<link*> crosses;
 	bool crossesActive = false;
-	link(node* a_, node* b_, size_t b0, size_t b1);
+	link(node* a_, node* b_);
 	node* getOther(node* n);
 };
 std::vector<int_fast8_t> getLinkAmounts();
