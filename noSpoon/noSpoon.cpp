@@ -122,6 +122,8 @@ void listCrosses() {//FIXME
 	cout << '\n';
 }
 void collapseRequired() {
+	bool goBackToFullNodeLoop = false;
+	fullNodeLoop:
 	for (fint nodeIndex = 0; nodeIndex < nodes.size(); ++nodeIndex) {
 		node& n = nodes[nodeIndex];
 		if (n.linkCount == 1) {
@@ -143,7 +145,7 @@ void collapseRequired() {
 				linkAmount = 2;
 			linksAvailableSum += linkAmount;
 		}
-		if (n.num == linksAvailableSum) {//FIXME
+		if (n.num == linksAvailableSum) {
 			for (fint i = 0; i < n.linkCount; ++i) {
 				link* l = n.links[i];
 				if (l->getOther(&n)->num < 0)
@@ -164,7 +166,27 @@ void collapseRequired() {
 				n.links[i]->getOther(&n)->num *= -1;
 			removeNode(&n);
 			nodeIndex = -1;
+			continue;
 		}
+	}
+	for (node& n : nodes) {
+		if ((n.linkCount == 2 && n.num > 2) || (n.linkCount == 3 && n.num > 4) || (n.linkCount == 4 && n.num > 6)) {
+			for (fint i = 0; i < n.linkCount; ++i) {
+				link* l = n.links[i];
+				node* oNode = l->getOther(&n);
+				oNode->num -= 1;
+				cout << n << ',' << *oNode << ',' << static_cast<int>(1) << ", ";
+				while (!l->crosses.empty())
+					removeLink(l->crosses[0]);
+			}
+			n.num -= n.linkCount;
+			goBackToFullNodeLoop = true;
+			break;
+		}
+	}
+	if (goBackToFullNodeLoop) {
+		goBackToFullNodeLoop = false;
+		goto fullNodeLoop;
 	}
 }
 int main() {
@@ -188,6 +210,25 @@ void removeNode(node* n) {
 	nodes.pop_back();
 }
 void removeLink(link* l){
+	{//remove pointers to l
+		for (link* l2 : l->crosses)
+			for (fint i = 0; i < l2->crosses.size(); ++i)
+				if (l2->crosses[i] == l) {
+					l2->crosses[i] = l2->crosses.back();
+					l2->crosses.pop_back();
+					break;
+				}
+		for (fint i = 0; i < 4; ++i)
+			if (l->a->links[i] == l) {
+				l->a->links[i] = l->a->links[--l->a->linkCount];
+				break;
+			}
+		for (fint i = 0; i < 4; ++i)
+			if (l->b->links[i] == l) {
+				l->b->links[i] = l->b->links[--l->b->linkCount];
+				break;
+			}
+	}//remove pointers to l
 	{//update all pointers to links.back() to instead point at l
 		for (link* l2 : links.back().crosses)
 			for (fint i = 0; i < l2->crosses.size(); ++i)
@@ -206,25 +247,6 @@ void removeLink(link* l){
 				break;
 			}
 	}//update all pointers to links.back() to instead point at l
-	{//set pointers to l to null, except for those changed above
-		for (link* l2 : l->crosses)
-			for (fint i = 0; i < l2->crosses.size(); ++i)
-				if (l2->crosses[i] == l) {
-					l2->crosses[i] = l2->crosses.back();
-					l2->crosses.pop_back();
-					break;
-				}
-		for (fint i = 0; i < 4; ++i)
-			if (l->a->links[i] == l) {
-				l->a->links[i] = l->a->links[--l->a->linkCount];
-				break;
-			}
-		for (fint i = 0; i < 4; ++i)
-			if (l->b->links[i] == l) {
-				l->b->links[i] = l->b->links[--l->b->linkCount];
-				break;
-			}
-	}//set pointers to l to null, except for those changed above
 	*l = std::move(links.back());
 	links.pop_back();
 }
